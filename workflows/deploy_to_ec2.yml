@@ -1,0 +1,45 @@
+name: Deploy to existing EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      ALCHEMY_URL: ${{ secrets.ALCHEMY_URL }}
+      PG_USER: ${{ secrets.PG_USER }}
+      PG_PASSWORD: ${{ secrets.PG_PASSWORD }}
+      PG_HOST: ${{ secrets.PG_HOST }}
+      PG_PORT: ${{ secrets.PG_PORT }}
+      PG_NAME: ${{ secrets.PG_NAME }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Deploy to existing EC2 instance
+        env:
+          PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
+        run: |
+          echo "$PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          scp -i private_key.pem -o StrictHostKeyChecking=no -r . ubuntu@$PUBLIC_IP:/home/ubuntu/my_project
+          rm -f private_key.pem
+
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP "sudo apt-get update && sudo apt-get install -y docker.io docker-compose && cd /home/ubuntu/my_project && docker-compose up -d"
+
+      - name: Display instance information
+        run: |
+          echo "The application has been deployed to the following EC2 instance:"
+          echo "Public IP: ${{ env.PUBLIC_IP }}"
