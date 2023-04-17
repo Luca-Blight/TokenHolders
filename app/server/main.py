@@ -13,8 +13,8 @@ import uvicorn
 app = FastAPI()
 
 
-
 ### Add caching
+
 
 @asynccontextmanager
 async def get_async_session() -> AsyncSession:
@@ -28,7 +28,7 @@ async def get_async_session() -> AsyncSession:
         yield session
     finally:
         await session.close()
-        
+
 
 @app.get("/token_holders")
 async def get_token_holders(
@@ -47,7 +47,9 @@ async def get_token_holders(
     elif order_by.lower() == "asc":
         query = query.order_by(TokenHolder.balance.asc())
     else:
-        raise HTTPException(status_code=400, detail="Invalid order_by value. Use 'asc' or 'desc'.")
+        raise HTTPException(
+            status_code=400, detail="Invalid order_by value. Use 'asc' or 'desc'."
+        )
 
     query = query.limit(limit)
     result = await db.execute(query)

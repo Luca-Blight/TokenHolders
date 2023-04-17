@@ -1,18 +1,17 @@
-import httpx
 import time
 import logging
 
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 from app.models.TokenHolder import TokenHolder
-from database.main import engine
+from app.database.main import engine
 from sqlmodel import select
 from web3 import Web3
 from web3.exceptions import BlockNotFound
 from contextlib import contextmanager
 from datetime import timedelta
 from sqlalchemy.sql import func
-
+from helper import get_block_date
 import requests
 import os
 import json
@@ -52,6 +51,8 @@ def get_transfer_events(from_block: int, to_block: str = None, contract_address:
         
         hex_to_block = Web3.to_hex(to_block)
         
+        log.info(f"get_transfer_events starting from block: {from_block} to block: {to_block}")
+        
         transfers = requests.post(
                     url=ALCHEMY_URL,
                     json={
@@ -77,6 +78,8 @@ def get_transfer_events(from_block: int, to_block: str = None, contract_address:
         return transfers
 
     else:
+        log.info(f"get_transfer_events starting from block: {from_block}")
+
         transfers = requests.post(
                 url=ALCHEMY_URL,
                 json={
@@ -118,10 +121,12 @@ def process_transfer_events(transfers):
                 result: list[dict] = result["result"]["transfers"]
                 for data in result:
                     block_number: int = Web3.to_int(hexstr=str(data["blockNum"]))
+                    block_date: datetime = get_block_date(block_number)
                     from_address: str = data["from"]
+                    transaction_hash: str = data["hash"]
                     to_address: str = data["to"]
-                    value: int = data['value']                    
-                    records.append({"block_number": block_number, "from_address": from_address, "to_address": to_address, "value": value})
+                    value: int = data['value'] if data['value'] else 0                
+                    records.append({"block_number": block_number, "from_address": from_address, "to_address": to_address, "value": value, "transaction_hash": transaction_hash, "block_date": block_date, "created_at": datetime.now()})
 
         df = pl.DataFrame(records)
         last_block = df["block_number"].max()
@@ -129,62 +134,108 @@ def process_transfer_events(transfers):
 
 def load_transfer_events(balances):
     
-    
+    balances.write_csv('/Users/Zachary_Royals/Documents/Code/Data-Engineer-Coding-Challenge/notebooks/doge_transfer.csv')
+    balances.sort('block_number', descending=False)
     records = balances.to_dicts()
     
     # order is extremely important here, otherwise total balances will be incorrect
-
+    log.info(f"Processing {len(records)} records")
     for record in records:
+        
+        
 
         from_address = record['from_address']
         to_address = record['to_address']
         value = record['value']
+        block_date = record['block_date']
+        transaction_hash = record['transaction_hash']
+        created_at = record['created_at']
         
+        if value == 0:
+            continue
         
         with get_session() as session:
-            # Retrieve the protocol id from the database and add it to the financial object
-            sender = select(TokenHolder).where(TokenHolder.address == from_address)
-            sender = session.execute(sender).one_or_none()
-                            
-            sender.balance -= value
-            sender.last_updated = datetime.now()
             
-            # Retrieve the protocol id from the database and add it to the financial object
-            recipient = select(TokenHolder).where(TokenHolder.address == to_address)
-            recipient = session.execute(recipient).one_or_none()
+            existing_record = session.query(TokenHolder).filter(TokenHolder.transaction_hash == transaction_hash).one_or_none()
             
-            if recipient is None:
-                recipient = TokenHolder(address=to_address, balances=value, last_updated=datetime.now())
-                recipient = recipient.execute(sender).one_or_none()
-                session.add(recipient)
+            if existing_record is not None:
+            # If it already exists, skip to the next record
+                continue
+            
+            if from_address == '0x0000000000000000000000000000000000000000':
+                # Process initial owner
                 
+                initial_owner = session.query(TokenHolder).filter(TokenHolder.address == to_address).one_or_none()
+
+                if initial_owner is None:
+                    log.info(f'Initial Supply: {value} DOGE')
+                    initial_owner = TokenHolder(address=to_address, balance=value, transaction_hash = transaction_hash , block_date=block_date , last_updated=created_at)
+                    session.add(initial_owner)
+                    session.flush()
+                    session.commit()
             else:
-                sender.address = to_address
-                sender.balance += value
-                sender.last_updated = datetime.now()
-                
-                
-            total_supply = session.query(func.sum(TokenHolder.balance)).scalar()
-            total_supply_percentage = (value / total_supply) * 100
 
-            # Update total supply and total supply percentage for the recipient
-            recipient.total_supply = total_supply
-            recipient.total_supply_percentage = total_supply_percentage
+                # Retrieve the protocol id from the database and add it to the financial object
+                sender_stmt = select(TokenHolder).where(TokenHolder.address == from_address)
+                sender = session.execute(sender_stmt).one_or_none()[0]
+                sender.balance -= value
+                sender.last_updated = created_at
+                session.add(sender)
+                session.flush()
 
-            # Calculate the weekly balance change
-            one_week_ago = datetime.utcnow() - timedelta(weeks=1)
-            previous_balance = (
-                session.query(func.sum(TokenHolder.balance))
-                .filter(TokenHolder.address == to_address, TokenHolder.last_updated < one_week_ago)
-                .scalar()
-            )
+                #     # ... your existing code ...
 
-            if previous_balance is not None:
-                weekly_balance_change = ((recipient.balance - previous_balance) / previous_balance) * 100
-                recipient.weekly_balance_change = weekly_balance_change
+                # else:
+                #     breakpoint()
+                #     # Handle the case when the sender is not found in the database
+                #     # You can create a new TokenHolder object and set its balance or log an error message
+                #     pass
+                # Retrieve the protocol id from the database and add it to the financial object
+                recipient = select(TokenHolder).where(TokenHolder.address == to_address)
+                recipient = session.execute(recipient).one_or_none()
+     
 
-                
-            session.commit()
+                if recipient is None:
+                    recipient = TokenHolder(address=to_address, balance=value,transaction_hash=transaction_hash, block_date=block_date, last_updated=created_at)
+                    session.add(recipient)
+                    session.flush()
+
+                    
+                else:
+                    recipient = recipient[0]
+                    recipient.balance += value
+                    recipient.last_updated = created_at
+                    session.add(recipient)
+                    session.flush()
+
+                    
+                    
+                total_supply = session.query(func.sum(TokenHolder.balance)).scalar()
+                total_supply_percentage = (value / total_supply) * 100
+
+                # Update total supply and total supply percentage for the recipient
+                recipient.total_supply = total_supply
+                recipient.total_supply_percentage = total_supply_percentage
+
+                # Calculate the weekly balance change
+                one_week_ago = datetime.utcnow() - timedelta(weeks=1)
+                previous_balance = (
+                    session.query(func.sum(TokenHolder.balance))
+                    .filter(TokenHolder.address == to_address, TokenHolder.block_date < one_week_ago)
+                    .scalar()
+                )
+
+                if previous_balance == 0:
+                    weekly_balance_change = 100 if recipient.balance > 0 else 0
+                    recipient.weekly_balance_change = weekly_balance_change
+
+                else:
+                    weekly_balance_change = ((recipient.balance - previous_balance) / previous_balance) * 100
+                    recipient.weekly_balance_change = weekly_balance_change
+
+                    
+                session.commit()
+
             
             
 
@@ -194,14 +245,16 @@ def index_continuously():
     
     last_block = 0
 
-    while True:
+    while True: 
         try:
+    
             transfers = get_transfer_events(from_block=last_block)
             balances, last_block = process_transfer_events(transfers)
             
             load_transfer_events(balances)
             
-            if balances:
+            if balances.is_empty() is False:
+                log.info('Successfully indexed transfer events')
                 last_block = last_block
                 
         except BlockNotFound:
@@ -211,13 +264,13 @@ def index_continuously():
         
 
 if __name__ == "__main__":
-    # index_continuously()
+    index_continuously()
 
-    indexing_strategy = os.environ.get("INDEXING_STRATEGY", input("Enter the indexing strategy (continuously/on_demand): "))
+    # indexing_strategy = os.environ.get("INDEXING_STRATEGY", input("Enter the indexing strategy (continuously/on_demand): "))
     
-    if indexing_strategy == "continuously":
-        index_continuously()
-    elif indexing_strategy == "on_demand":
-        print("Not implemented yet.")
-    else:
-        print("Invalid input. Please enter 'continuously' or 'on_demand'.")
+    # if indexing_strategy == "continuously":
+    #     index_continuously()
+    # elif indexing_strategy == "on_demand":
+    #     print("Not implemented yet.")
+    # else:
+    #     print("Invalid input. Please enter 'continuously' or 'on_demand'.")
