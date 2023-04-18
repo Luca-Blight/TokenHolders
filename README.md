@@ -1,4 +1,4 @@
-# DE-Challenge-Beta
+# DE-Challenge
 
 ## Overview
 
