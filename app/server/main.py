@@ -5,7 +5,7 @@ from typing import Optional
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import sessionmaker
 from app.models import TokenHolder
-from database.main import async_engine
+from app.database.main import async_engine
 from aiocache import cached
 import uvicorn
 
