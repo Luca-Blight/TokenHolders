@@ -5,7 +5,6 @@ import logging
 import requests
 import time
 
-
 from app.models.TokenHolder import TokenHolder
 from app.database.main import engine
 from datetime import datetime, timedelta
@@ -13,7 +12,6 @@ from sqlmodel import select
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func
 from contextlib import contextmanager
-from helper import get_block_date
 from web3 import Web3
 from web3.exceptions import BlockNotFound
 
@@ -76,7 +74,7 @@ def get_transfer_events(
                         "toBlock": "latest",
                         "contractAddresses": [contract_address],
                         "excludeZeroValue": False,
-                        "metadata": "true",
+                        "withMetadata": "true",
                         "category": [
                             "erc20",
                         ],
@@ -102,7 +100,7 @@ def get_transfer_events(
                         "toBlock": "latest",
                         "contractAddresses": [contract_address],
                         "excludeZeroValue": False,
-                        "metadata": "true",
+                        "withMetadata": True,
                         "category": [
                             "erc20",
                         ],
@@ -110,7 +108,6 @@ def get_transfer_events(
                 ],
             },
         )
-
     return transfers
 
 
@@ -129,7 +126,10 @@ def process_transfer_events(transfers) -> tuple[pl.DataFrame, int]:
                 result: list[dict] = result["result"]["transfers"]
                 for data in result:
                     block_number: int = Web3.to_int(hexstr=str(data["blockNum"]))
-                    block_date: datetime = get_block_date(block_number)
+                    # block_date: datetime = get_block_date(block_number)
+                    block_timestamp = data["metadata"]["blockTimestamp"]
+                    date_format = "%Y-%m-%dT%H:%M:%S.%fZ"
+                    block_date = datetime.strptime(block_timestamp, date_format)
                     from_address: str = data["from"]
                     transaction_hash: str = data["hash"]
                     transaction = web3.eth.get_transaction(transaction_hash)
@@ -157,14 +157,13 @@ def process_transfer_events(transfers) -> tuple[pl.DataFrame, int]:
         return df, last_block
 
 
-def load_transfer_events(balances):
-
-    balances.sort(["block_number", "transaction_idx"], descending=False)
-    balances.write_csv(
-        "/Users/Zachary_Royals/Documents/Code/Data-Engineer-Coding-Challenge/notebooks/doge_transfer.csv"
-    )
-    records = balances.to_dicts()
+def load_transfer_events(balances: pl.DataFrame):
+    
     # order is extremely important here, otherwise total balances will be incorrect, hence the sort and synchronous processing
+    balances.sort(["block_number", "transaction_idx"], descending=False)
+
+
+    records = balances.to_dicts()
     log.info(f"Processing {len(records)} records")
     for idx, record in enumerate(records):
 
@@ -364,7 +363,7 @@ def index_continuously():
 
     while True:
         try:
-
+            start = time.time()
             transfers = get_transfer_events(from_block=last_block)
             balances, last_block = process_transfer_events(transfers)
 
@@ -373,19 +372,44 @@ def index_continuously():
             if balances.is_empty() is False:
                 log.info("Successfully indexed transfer events")
                 last_block = last_block
+                end = time.time()
+                log.info(f"Time taken: {end - start} seconds")
 
         except BlockNotFound:
             time.sleep(15)
 
 
+def on_demand(from_block: int, to_block: int):
+
+    try:
+        start = time.time()
+        transfers = get_transfer_events(from_block=from_block, to_block=to_block)
+        balances, last_block = process_transfer_events(transfers)
+
+        load_transfer_events(balances)
+
+        if balances.is_empty() is False:
+            log.info("Successfully indexed transfer events")
+            end = time.time()
+        log.info(f"Time taken: {end - start} seconds")
+    except BlockNotFound:
+        time.sleep(15)
+
+
 if __name__ == "__main__":
     index_continuously()
 
-    # indexing_strategy = os.environ.get("INDEXING_STRATEGY", input("Enter the indexing strategy (continuously/on_demand): "))
+    indexing_strategy = os.environ.get(
+        "INDEXING_STRATEGY",
+        input("Enter the indexing strategy (continuously/on_demand): "),
+    )
 
-    # if indexing_strategy == "continuously":
-    #     index_continuously()
-    # elif indexing_strategy == "on_demand":
-    #     print("Not implemented yet.")
-    # else:
-    #     print("Invalid input. Please enter 'continuously' or 'on_demand'.")
+    if indexing_strategy == "continuously":
+        index_continuously()
+    elif indexing_strategy == "on_demand":
+        from_block = int(input("Enter the start block number: "))
+        to_block = int(input("Enter the end block number: "))
+        on_demand(from_block, to_block)
+        print("Not implemented yet.")
+    else:
+        print("Invalid input. Please enter 'continuously' or 'on_demand'.")
