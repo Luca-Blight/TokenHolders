@@ -2,17 +2,32 @@
 
 ## Overview
 
+This a simple API and pipeline that allows you to load and query on-chain transfer data associated with doge token holders.
+
+[Here's a quick overview of the project](https://www.notion.so/Tessera-Test-bc360c1fdaae49c78dfa80687f4f1217?pvs=4_)
+
 ## Local Setup
 
-## Architecture
+Install Packages Requisite Packages
 
-[Click here to view the Miro board](https://miro.com/app/board/uXjVMTRbu2c=/?share_link_id=713667017182)
+```bash
+
+pip install -r requirements.txt
+
+```
+
+Run the API and Indexer
+
+```bash
+
+sh entrypoints.sh
+
+```
 
 ## Directory
 
 ```bash
-.
-.
+
 ├── README.md
 ├── app
 │   ├── database
