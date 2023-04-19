@@ -1,19 +1,22 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import func
+
 from typing import Optional
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import sessionmaker
-from app.models import TokenHolder
+from app.models.TokenHolder import TokenHolder
 from app.database.main import async_engine
-from aiocache import cached
+from aiocache import cached, SimpleMemoryCache
+from aiocache.serializers import JsonSerializer
+from aiocache.plugins import TimingPlugin
+
 import uvicorn
 
 
 app = FastAPI()
-
-
-### Add caching
+cache = SimpleMemoryCache()
 
 
 @asynccontextmanager
@@ -23,6 +26,7 @@ async def get_async_session() -> AsyncSession:
     )
 
     session = async_session()
+    await session.begin()
 
     try:
         yield session
@@ -30,45 +34,150 @@ async def get_async_session() -> AsyncSession:
         await session.close()
 
 
+@app.get("/")
+async def get_root():
+    return {"message": "Hello World"}
+
+
 @app.get("/token_holders")
+@cached(ttl=3600)
 async def get_token_holders(
-    db: AsyncSession = Depends(get_async_session),
     top_token_holders: Optional[int] = None,
     limit: Optional[int] = 100,
     order_by: Optional[str] = "desc",
 ):
-    query = select(TokenHolder)
-
-    if top_token_holders:
-        limit = top_token_holders
-
-    if order_by.lower() == "desc":
-        query = query.order_by(TokenHolder.balance.desc())
-    elif order_by.lower() == "asc":
-        query = query.order_by(TokenHolder.balance.asc())
-    else:
-        raise HTTPException(
-            status_code=400, detail="Invalid order_by value. Use 'asc' or 'desc'."
+    async with get_async_session() as db:
+        subquery = (
+            select(
+                TokenHolder.address,
+                func.max(TokenHolder.block_date).label("max_timestamp"),
+            )
+            .group_by(TokenHolder.address)
+            .subquery()
         )
 
-    query = query.limit(limit)
-    result = await db.execute(query)
-    results = result.fetchall()
+        query = select(TokenHolder).join(
+            subquery,
+            (TokenHolder.address == subquery.c.address)
+            & (TokenHolder.block_date == subquery.c.max_timestamp),
+        )
 
-    token_holders = [
-        {
-            "address": holder.address,
-            "balance": holder.balance,
-            "total_supply": holder.total_supply,
-            "total_supply_percentage": holder.total_supply_percentage,
-            "weekly_balance_change": holder.weekly_balance_change,
-            "last_updated": holder.last_updated,
-        }
-        for holder in results
-    ]
+        if top_token_holders:
+            limit = top_token_holders
+
+        if order_by.lower() == "desc":
+            query = query.order_by(TokenHolder.balance.desc())
+        elif order_by.lower() == "asc":
+            query = query.order_by(TokenHolder.balance.asc())
+        else:
+            raise HTTPException(
+                status_code=400, detail="Invalid order_by value. Use 'asc' or 'desc'."
+            )
+
+        query = query.limit(limit)
+        result = await db.execute(query)
+        results = result.fetchall()
+
+        token_holders = [
+            {
+                "address": holder[0].address,
+                "balance": holder[0].balance,
+                "total_supply": holder[0].total_supply,
+                "total_supply_percentage": holder[0].total_supply_percentage,
+                "weekly_balance_change": holder[0].weekly_balance_change,
+                "last_updated": holder[0].block_date,
+            }
+            for holder in results
+        ]
 
     return {"token_holders": token_holders}
 
 
+@app.get("/{token_holder_address}")
+@cached(ttl=3600)
+async def get_token_holders(
+    token_holder_address: str = None,
+    balance: bool = False,
+    weekly_balance_change: bool = False,
+):
+    async with get_async_session() as db:
+
+        if balance == True & weekly_balance_change == True:
+            query = (
+                select(
+                    TokenHolder.address,
+                    TokenHolder.balance,
+                    TokenHolder.weekly_balance_change,
+                    TokenHolder.block_date,
+                )
+                .where(TokenHolder.address == token_holder_address)
+                .order_by(TokenHolder.block_date.desc())
+                .limit(1)
+            )
+
+            result = await db.execute(query)
+            results = result.fetchall()
+
+            token_holder = [
+                {
+                    "address": holder.address,
+                    "balance": holder.balance,
+                    "weekly_balance_change": holder.weekly_balance_change,
+                }
+                for holder in results
+            ]
+            return {"token_holder": token_holder}
+        elif balance == True & weekly_balance_change == False:
+
+            query = (
+                select(TokenHolder.address, TokenHolder.balance, TokenHolder.block_date)
+                .where(TokenHolder.address == token_holder_address)
+                .order_by(TokenHolder.block_date.desc())
+                .limit(1)
+            )
+
+            result = await db.execute(query)
+            results = result.fetchall()
+            token_holder = [
+                {
+                    "address": holder.address,
+                    "balance": holder.balance,
+                }
+                for holder in results
+            ]
+            return {"token_holder": token_holder}
+
+        else:
+
+            query = (
+                select(
+                    TokenHolder.address,
+                    TokenHolder.weekly_balance_change,
+                    TokenHolder.block_date,
+                )
+                .where(TokenHolder.address == token_holder_address)
+                .order_by(TokenHolder.block_date.desc())
+                .limit(1)
+            )
+
+            result = await db.execute(query)
+            results = result.fetchall()
+
+            token_holder = [
+                {
+                    "address": holder.address,
+                    "weekly_balance_change": holder.weekly_balance_change,
+                }
+                for holder in results
+            ]
+
+            return {"token_holder": token_holder}
+
+
+
+
+
+
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

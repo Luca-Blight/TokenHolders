@@ -17,6 +17,7 @@ ASYNC_PG_URL = (
     f"postgresql+asyncpg://{PG_USER}:{PG_PASSWORD}@{PG_HOST}:{PG_PORT}/{PG_NAME}"
 )
 
+
 async_engine = create_async_engine(ASYNC_PG_URL, echo=True)
 
 
