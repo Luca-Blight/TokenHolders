@@ -26,4 +26,3 @@ class TokenHolder(SQLModel, table=True):
             name="total_supply_percentage_positive_check",
         ),
     )
-

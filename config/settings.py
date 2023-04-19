@@ -7,7 +7,8 @@ PG_NAME = "postgres"
 PG_USER = "postgres"
 PG_PASSWORD = "postgres"
 
-# API keys
-
 # Other settings
 LOG_LEVEL = "DEBUG"
+
+POOL_MIN_SIZE = 15
+POOL_MAX_SIZE = 20

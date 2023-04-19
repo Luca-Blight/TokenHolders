@@ -82,7 +82,6 @@ async def get_token_holders(
             {
                 "address": holder[0].address,
                 "balance": holder[0].balance,
-                "total_supply": holder[0].total_supply,
                 "total_supply_percentage": holder[0].total_supply_percentage,
                 "weekly_balance_change": holder[0].weekly_balance_change,
                 "last_updated": holder[0].block_date,
@@ -93,7 +92,7 @@ async def get_token_holders(
     return {"token_holders": token_holders}
 
 
-@app.get("/{token_holder_address}")
+@app.get("/token_holders/{token_holder_address}")
 @cached(ttl=3600)
 async def get_token_holders(
     token_holder_address: str = None,
@@ -172,11 +171,6 @@ async def get_token_holders(
             ]
 
             return {"token_holder": token_holder}
-
-
-
-
-
 
 
 if __name__ == "__main__":
