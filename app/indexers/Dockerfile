@@ -12,13 +12,11 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 # Set the working directory
 WORKDIR /app/indexers
 
-# Copy the requirements file
-COPY . .
+# Copy the entire application
+COPY ./app/indexers .
 
 # Install Python dependencies
 RUN pip3 install --upgrade pip
 RUN pip3 install -r requirements.txt
-
-# Copy the rest of the application
 
 CMD ["python", "main.py"]
