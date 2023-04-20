@@ -35,6 +35,7 @@ jobs:
         run: |
           echo "$PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP "mkdir -p /home/ubuntu/my_project"
           scp -i private_key.pem -o StrictHostKeyChecking=no -r $(pwd)/* ubuntu@$PUBLIC_IP:/home/ubuntu/my_project
           rm -f private_key.pem
 
