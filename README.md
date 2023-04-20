@@ -4,7 +4,7 @@
 
 This a simple API and pipeline that allows you to load and query on-chain transfer data associated with doge token holders.
 
-[Here's a quick overview of the project](https://www.notion.so/Tessera-Test-bc360c1fdaae49c78dfa80687f4f1217?pvs=4_)
+[Here's a quick overview of the project](https://evergreen-haircut-085.notion.site/bc360c1fdaae49c78dfa80687f4f1217?v=cfd5de9304de4010b205af078e62f306)
 
 ## Local Setup
 
