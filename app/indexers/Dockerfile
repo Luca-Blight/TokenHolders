@@ -1,11 +1,25 @@
-FROM python:3.9-alpine
+FROM python:3.10
 
+# Install Rust and Cargo
+RUN apt-get update && \
+    apt-get install -y curl && \
+    curl https://sh.rustup.rs -sSf | sh -s -- -y && \
+    . $HOME/.cargo/env
+
+# Add Rust and Cargo to the PATH
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Set the working directory
 WORKDIR /app/indexers
 
-COPY requirements.txt ./
-RUN pip3 install -r requirements.txt 
+# Copy the requirements file
+COPY ./app/indexers/requirements.txt .
 
-COPY app/ ./app
+# Install Python dependencies
+RUN pip3 install --upgrade pip
+RUN pip3 install -r requirements.txt
 
-CMD ["python", "app/indexers/main.py"]
+# Copy the rest of the application
+COPY ./app/indexers .
 
+CMD ["python", "main.py"]
