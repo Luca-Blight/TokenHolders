@@ -2,19 +2,21 @@ version: '3.9'
 
 services:
   api:
-    build: .
-    command: python app/server/main.py
+    build:
+      context: ./app/server
+    command: python main.py
     volumes:
-      - .:/app
+      - ./app/server:/app/server
     ports:
       - '8000:8000'
     restart: unless-stopped
 
   doge_indexer:
-    build: .
+    build:
+      context: ./app/indexers
     environment:
       - INDEXING_STRATEGY=continuously
-    command: sh -c 'python app/indexers/main.py'
+    command: sh -c 'python main.py'
     volumes:
-      - .:/app
+      - ./app/indexers:/app/indexers
     restart: unless-stopped
