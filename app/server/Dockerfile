@@ -2,22 +2,30 @@
 FROM python:3.9
 
 # Set the working directory
-WORKDIR /app/server
+WORKDIR /usr/app
 
-# Copy the requirements file into the container
-COPY requirements.txt .
+
+
+COPY requirements.txt requirements.txt
 
 # Install the dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --upgrade pip
+RUN pip3 install --no-cache-dir -r requirements.txt --use-feature=fast-deps
+RUN apt-get update
+RUN apt-get install -y curl
 
-# Copy the rest of the application code
-COPY . .
+# Copy the entire workspace
+COPY app/. .
+
+ENV PYTHONPATH="/usr/"
 
 # Expose the port the app runs on
 EXPOSE 8000
 
 # Start the application
-CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "server/main.py"]
+
+
 
 
 

@@ -17,6 +17,7 @@ from web3.exceptions import BlockNotFound
 
 from dotenv import load_dotenv
 
+
 load_dotenv()
 
 ALCHEMY_URL = os.environ.get("ALCHEMY_URL")
