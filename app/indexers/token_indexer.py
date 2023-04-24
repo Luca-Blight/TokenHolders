@@ -48,11 +48,15 @@ def get_session():
 
 
 class TokenIndexer:
-    def __init__(self, contract_address: str = "0xBAac2B4491727D78D2b78815144570b9f2Fe8899"):
+    def __init__(
+        self, contract_address: str = "0xBAac2B4491727D78D2b78815144570b9f2Fe8899"
+    ):
         self.contract_address = contract_address
 
-    def get_transfer_events(self, from_block: int, to_block: str = None,contract_address: str = None) -> requests.Response:
-        
+    def get_transfer_events(
+        self, from_block: int, to_block: str = None, contract_address: str = None
+    ) -> requests.Response:
+
         if contract_address is None:
             contract_address = self.contract_address
         # The rest of the get_transfer_events method
@@ -85,7 +89,9 @@ class TokenIndexer:
         if to_block:
             hex_to_block = Web3.to_hex(to_block)
             payload["params"][0]["toBlock"] = f"{hex_to_block}"
-            log.info(f"get_transfer_events starting from block: {from_block} to block: {to_block}")
+            log.info(
+                f"get_transfer_events starting from block: {from_block} to block: {to_block}"
+            )
         else:
             payload["params"][0]["toBlock"] = "latest"
             log.info(f"get_transfer_events starting from block: {from_block}")
@@ -94,7 +100,7 @@ class TokenIndexer:
         return transfers
 
     def process_transfer_events(self, transfers) -> tuple[pl.DataFrame, int]:
-        
+
         records = []
 
         if transfers.status_code == 400:
@@ -136,11 +142,9 @@ class TokenIndexer:
             last_block = df["block_number"].max()
             return df, last_block
 
-
     def load_transfer_events(self, balances: pl.DataFrame):
         # order is extremely important here, otherwise total balances will be incorrect, hence the sort and synchronous processing
         balances.sort(["block_number", "transaction_idx"], descending=False)
-
 
         records = balances.to_dicts()
         log.info(f"Processing {len(records)} records")
@@ -175,7 +179,9 @@ class TokenIndexer:
 
                     if initial_owner is None:
                         log.info(f"Initial Supply: {value} DOGE")
-                        total_supply = session.query(func.sum(TokenHolder.balance)).scalar()
+                        total_supply = session.query(
+                            func.sum(TokenHolder.balance)
+                        ).scalar()
                         total_supply_percentage = 100
 
                         initial_owner = TokenHolder(
@@ -235,7 +241,10 @@ class TokenIndexer:
 
                         else:
                             weekly_balance_change = round(
-                                ((new_sender_balance - previous_balance) / previous_balance)
+                                (
+                                    (new_sender_balance - previous_balance)
+                                    / previous_balance
+                                )
                                 * 100
                             )
 
@@ -288,7 +297,10 @@ class TokenIndexer:
                             # Update the existing record for the recipient with the updated balance, total supply percentage, and weekly balance change.
                             recipient = recipient[0]
                             new_recipient_balance = round(recipient.balance + value, 2)
-                            if new_recipient_balance < 0 and new_recipient_balance >= -0.03:
+                            if (
+                                new_recipient_balance < 0
+                                and new_recipient_balance >= -0.03
+                            ):
                                 new_sender_balance = 0
 
                             total_supply = 16969696969
@@ -338,8 +350,8 @@ class TokenIndexer:
         # The rest of the load_transfer_events method
 
     def index_continuously(self):
-        
-            # Get the latest block number from the TokenHolder table
+
+        # Get the latest block number from the TokenHolder table
         with get_session() as session:
             latest_block = session.query(func.max(TokenHolder.block_number)).scalar()
 
@@ -363,12 +375,13 @@ class TokenIndexer:
             except BlockNotFound:
                 time.sleep(15)
 
-
     def on_demand(self, from_block: int, to_block: int):
-        
+
         try:
             start = time.time()
-            transfers = self.get_transfer_events(from_block=from_block, to_block=to_block)
+            transfers = self.get_transfer_events(
+                from_block=from_block, to_block=to_block
+            )
             balances, last_block = self.process_transfer_events(transfers)
 
             self.load_transfer_events(balances)
@@ -379,5 +392,3 @@ class TokenIndexer:
             log.info(f"Time taken: {end - start} seconds")
         except BlockNotFound:
             time.sleep(15)
-
-

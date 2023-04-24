@@ -26,5 +26,3 @@ ASYNC_PG_URL = (
 async_engine = create_async_engine(
     ASYNC_PG_URL, echo=True, pool_size=POOL_MIN_SIZE, max_overflow=POOL_MAX_SIZE
 )
-
-
