@@ -382,8 +382,8 @@ class TokenIndexer:
             transfers = self.get_transfer_events(
                 from_block=from_block, to_block=to_block
             )
-            balances, last_block = self.process_transfer_events(transfers)
-
+            results = self.process_transfer_events(transfers)
+            balances = results[0]
             self.load_transfer_events(balances)
 
             if balances.is_empty() is False:
