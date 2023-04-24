@@ -5,7 +5,7 @@ import logging
 import requests
 import time
 
-from app.models.TokenHolder import TokenHolder
+from app.models import TokenHolder
 from app.database.main import engine
 from datetime import datetime, timedelta
 from sqlmodel import select
@@ -16,6 +16,7 @@ from web3 import Web3
 from web3.exceptions import BlockNotFound
 
 from dotenv import load_dotenv
+
 
 load_dotenv()
 

@@ -1,3 +1,5 @@
+
+
 from fastapi import FastAPI, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -6,11 +8,9 @@ from sqlalchemy import func
 from typing import Optional
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import sessionmaker
-from app.models.TokenHolder import TokenHolder
+from models import TokenHolder
 from app.database.main import async_engine
 from aiocache import cached, SimpleMemoryCache
-from aiocache.serializers import JsonSerializer
-from aiocache.plugins import TimingPlugin
 
 import uvicorn
 

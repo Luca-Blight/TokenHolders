@@ -1,22 +1,38 @@
-FROM python:3.10
+FROM python:3.9
 
 # Install Rust and Cargo
-RUN apt-get update && \
+RUN set -e && \
+    apt-get update && \
     apt-get install -y curl && \
     curl https://sh.rustup.rs -sSf | sh -s -- -y && \
     . $HOME/.cargo/env
 
+WORKDIR /usr/app
+
 # Add Rust and Cargo to the PATH
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-# Set the working directory
-WORKDIR /app/indexers
-
-# Copy the entire application
-COPY ./app/indexers .
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        libpq-dev \
+        gcc \
+        libssl-dev \
+        libffi-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-RUN pip3 install --upgrade pip
-RUN pip3 install -r requirements.txt
+COPY requirements.txt requirements.txt
+RUN pip3 install --upgrade pip && \
+    pip3 install --no-cache-dir -r requirements.txt --use-feature=fast-deps
 
-CMD ["python", "main.py"]
+# Copy the app and models folders
+COPY app/. .
+
+ENV PYTHONPATH="/usr/"
+ENV ALCHEMY_URL="https://eth-mainnet.g.alchemy.com/v2/hTng6pRagvXdsPNQwfXZLgVr4_Np2p7G"
+
+CMD ["python", "indexers/main.py"]
+

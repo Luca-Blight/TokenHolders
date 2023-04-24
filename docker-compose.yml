@@ -1,20 +1,19 @@
-version: '3.10'
+version: '3.9'
 
 services:
   api:
-    build: ./app/server
-    command: python main.py
-    volumes:
-      - ./app/server:/app
+    build:
+      context: .
+      dockerfile: app/server/Dockerfile
     ports:
       - '8000:8000'
-    restart: unless-stopped
+    environment:
+      - PYTHONPATH="/usr/app"
 
   doge_indexer:
-    build: ./app/indexers
+    build:
+      context: .
+      dockerfile: app/indexers/Dockerfile
     environment:
-      - INDEXING_STRATEGY=continuously
-    command: sh -c 'python main.py'
-    volumes:
-      - ./app/indexers:/app
-    restart: unless-stopped
+      - PYTHONPATH="/usr/app"
+      - ALCHEMY_URL="https://eth-mainnet.g.alchemy.com/v2/hTng6pRagvXdsPNQwfXZLgVr4_Np2p7G"

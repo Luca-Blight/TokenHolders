@@ -1,7 +1,6 @@
 from sqlmodel import Field, SQLModel
 from datetime import datetime
 from sqlalchemy.schema import CheckConstraint
-from sqlalchemy import Column, BigInteger
 
 
 class TokenHolder(SQLModel, table=True):
