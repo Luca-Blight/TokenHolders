@@ -7,13 +7,33 @@ services:
       dockerfile: app/server/Dockerfile
     ports:
       - '8000:8000'
-    environment:
-      - PYTHONPATH="/usr/app"
+    links:
+      - postgres
+    # environment:
+    #   - PYTHONPATH="/usr/app"
+    # volumes:
+    #   - ./app:/usr/app
 
   doge_indexer:
     build:
       context: .
       dockerfile: app/indexers/Dockerfile
     environment:
-      - PYTHONPATH="/usr/app"
-      - ALCHEMY_URL="https://eth-mainnet.g.alchemy.com/v2/hTng6pRagvXdsPNQwfXZLgVr4_Np2p7G"
+      - ALCHEMY_URL=https://eth-mainnet.g.alchemy.com/v2/hTng6pRagvXdsPNQwfXZLgVr4_Np2p7G
+    links:
+      - postgres
+
+  postgres:
+    image: postgres:14.1-alpine
+    ports:
+      - '5433:5433'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - db:/var/lib/postgresql/data
+    command: -p 5433
+volumes:
+  db:
+    driver: local

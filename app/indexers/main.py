@@ -5,7 +5,7 @@ import logging
 import requests
 import time
 
-from app.models import TokenHolder
+from app.models.TokenHolder import TokenHolder
 from app.database.main import engine
 from datetime import datetime, timedelta
 from sqlmodel import select
