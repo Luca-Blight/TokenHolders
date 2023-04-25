@@ -79,4 +79,9 @@ jobs:
             unzip awscliv2.zip && \
             sudo ./aws/install --update && \
             aws ecr get-login-password --region $AWS_REGION | sudo docker login --username AWS --password-stdin $ECR_REPOSITORY && \
-            cd /home/ubuntu
+            cd /home/ubuntu/my_project && \
+            echo -e "ALCHEMY_URL=\$ALCHEMY_URL\nINDEXING_STRATEGY=\$INDEXING_STRATEGY\nCONTRACT_ADDRESS=\$CONTRACT_ADDRESS\nFROM_BLOCK=\$FROM_BLOCK\nTO_BLOCK=\$TO_BLOCK\nPG_USER=\$PG_USER\nPG_PASSWORD=\$PG_PASSWORD\nPG_DB=\$PG_DB\nPG_HOST=\$PG_HOST\nPG_PORT=\$PG_PORT\nECR_REPOSITORY=\$ECR_REPOSITORY" > .env && \
+            sudo docker-compose --env-file .env up -d && \
+            rm .env
+          ENDSSH
+          rm -f private_key.pem
