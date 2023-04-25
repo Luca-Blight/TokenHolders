@@ -11,7 +11,7 @@ from app.database.main import async_engine
 from aiocache import cached, SimpleMemoryCache
 
 import uvicorn
-
+import ujson
 
 app = FastAPI()
 cache = SimpleMemoryCache()
@@ -34,7 +34,7 @@ async def get_async_session() -> AsyncSession:
 
 @app.get("/")
 async def get_root():
-    return {"message": "Hello World"}
+    return ujson.dumps({"message": "Hello World"})
 
 
 @app.get("/token_holders")
@@ -123,7 +123,7 @@ async def get_token_holders(
                 }
                 for holder in results
             ]
-            return {"token_holder": token_holder}
+            return ujson.dumps({"token_holder": token_holder})
         elif balance == True & weekly_balance_change == False:
 
             query = (
@@ -142,7 +142,7 @@ async def get_token_holders(
                 }
                 for holder in results
             ]
-            return {"token_holder": token_holder}
+            return ujson.dumps({"token_holder": token_holder})
 
         else:
 
@@ -168,7 +168,7 @@ async def get_token_holders(
                 for holder in results
             ]
 
-            return {"token_holder": token_holder}
+            return ujson.dumps({"token_holder": token_holder})
 
 
 if __name__ == "__main__":
