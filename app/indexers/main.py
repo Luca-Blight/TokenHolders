@@ -32,12 +32,12 @@ if __name__ == "__main__":
         contract_address = input("Enter the contract address here: ")
         token_indexer = TokenIndexer(contract_address=contract_address)
         token_indexer.index_continuously()
-        
+
     elif indexing_strategy == "on_demand":
-        
+
         from_block = int(input("Enter the start block number: "))
         to_block = int(input("Enter the end block number: "))
-            
+
         contract_address = input("Enter the contract address here: ")
 
         token_indexer = TokenIndexer(contract_address=contract_address)
@@ -47,24 +47,24 @@ if __name__ == "__main__":
         print("Invalid input. Please enter 'continuously' or 'on_demand'.")
 
 
-
-
 if __name__ == "__main__":
-    
+
     indexing_strategy = os.environ.get("INDEXING_STRATEGY")
     contract_address = os.environ.get("CONTRACT_ADDRESS")
 
     if indexing_strategy == "continuously":
         token_indexer = TokenIndexer(contract_address=contract_address)
         token_indexer.index_continuously()
-        
+
     elif indexing_strategy == "on_demand":
-        
+
         from_block = int(os.environ.get("FROM_BLOCK"))
         to_block = int(os.environ.get("TO_BLOCK"))
 
         token_indexer = TokenIndexer(contract_address=contract_address)
         token_indexer.on_demand(from_block, to_block)
-        
+
     else:
-        print("Invalid input. Please set the INDEXING_STRATEGY environment variable to 'continuously' or 'on_demand'.")
+        print(
+            "Invalid input. Please set the INDEXING_STRATEGY environment variable to 'continuously' or 'on_demand'."
+        )

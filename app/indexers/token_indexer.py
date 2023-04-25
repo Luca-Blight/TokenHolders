@@ -47,17 +47,17 @@ def get_session():
     finally:
         session.close()
 
+
 def is_hex(s):
-    return re.match(r'^0x[0-9a-fA-F]{40}$', s) is not None
+    return re.match(r"^0x[0-9a-fA-F]{40}$", s) is not None
+
+
 class TokenIndexer:
-    def __init__(
-        self, contract_address
-    ):
-        
+    def __init__(self, contract_address):
+
         if not is_hex(contract_address):
             raise ValueError("Invalid contract address")
         self.contract_address = contract_address
- 
 
     def get_transfer_events(
         self, from_block: int, to_block: str = None, contract_address: str = None
@@ -389,9 +389,9 @@ class TokenIndexer:
                 from_block=from_block, to_block=to_block
             )
             results = self.process_transfer_events(transfers)
-            
+
             balances = results[0]
-            
+
             self.load_transfer_events(balances)
 
             if balances.is_empty() is False:

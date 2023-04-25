@@ -15,4 +15,3 @@ CONTRACT_ADDRESS = os.environ.get("CONTRACT_ADDRESS")
 
 # Other settings
 LOG_LEVEL = "DEBUG"
-
