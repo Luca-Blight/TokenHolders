@@ -20,17 +20,30 @@ jobs:
       INDEXING_STRATEGY: ${{ secrets.INDEXING_STRATEGY }}
       FROM_BLOCK: ${{ secrets.FROM_BLOCK }}
       TO_BLOCK: ${{ secrets.TO_BLOCK }}
+      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+      AWS_REGION: us-east-1
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build and push Docker images
+        run: |
+          docker build -t $ECR_REPOSITORY:api-latest -f app/server/Dockerfile .
+          docker build -t $ECR_REPOSITORY:doge_indexer-latest -f app/indexers/Dockerfile .
+          docker push $ECR_REPOSITORY:api-latest
+          docker push $ECR_REPOSITORY:indexer-latest
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-2
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Deploy to existing EC2 instance
         env:
@@ -42,6 +55,6 @@ jobs:
 
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP "mkdir -p /home/ubuntu/my_project"
           scp -i private_key.pem -o StrictHostKeyChecking=no -r $(pwd)/* ubuntu@$PUBLIC_IP:/home/ubuntu/my_project
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP "sudo apt-get update && sudo apt-get install -y docker.io docker-compose && sudo apt-get upgrade -y docker.io docker-compose && cd /home/ubuntu/my_project && echo -e \"ALCHEMY_URL=$ALCHEMY_URL\nINDEXING_STRATEGY=$INDEXING_STRATEGY\nCONTRACT_ADDRESS=$CONTRACT_ADDRESS\nFROM_BLOCK=$FROM_BLOCK\nTO_BLOCK=$TO_BLOCK\nPOSTGRES_USER=$PG_USER\nPOSTGRES_PASSWORD=$PG_PASSWORD\nPOSTGRES_DB=$PG_DB\nPOSTGRES_HOST=$PG_HOST\nPOSTGRES_PORT=$PG_PORT\" > .env && sudo docker-compose up -d"
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP "sudo apt-get update && sudo apt-get install -y docker.io docker-compose && cd /home/ubuntu/my_project && echo -e \"ALCHEMY_URL=$ALCHEMY_URL\nINDEXING_STRATEGY=$INDEXING_STRATEGY\nCONTRACT_ADDRESS=$CONTRACT_ADDRESS\nFROM_BLOCK=$FROM_BLOCK\nTO_BLOCK=$TO_BLOCK\nPOSTGRES_USER=$PG_USER\nPOSTGRES_PASSWORD=$PG_PASSWORD\nPOSTGRES_DB=$PG_DB\nPOSTGRES_HOST=$PG_HOST\nPOSTGRES_PORT=$PG_PORT\nECR_REPOSITORY=$ECR_REPOSITORY\" > .env && sudo docker-compose up -d"
 
           rm -f private_key.pem
