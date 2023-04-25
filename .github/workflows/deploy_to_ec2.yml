@@ -20,7 +20,7 @@ jobs:
       INDEXING_STRATEGY: ${{ secrets.INDEXING_STRATEGY }}
       FROM_BLOCK: ${{ secrets.FROM_BLOCK }}
       TO_BLOCK: ${{ secrets.TO_BLOCK }}
-      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+      ECR_REPOSITORY: 954247117315.dkr.ecr.us-east-1.amazonaws.com
       AWS_REGION: us-east-1
 
     steps:
@@ -40,10 +40,10 @@ jobs:
 
       - name: Build and push Docker images
         run: |
-          docker build -t $ECR_REPOSITORY:api-latest -f app/server/Dockerfile .
-          docker build -t $ECR_REPOSITORY:doge_indexer-latest -f app/indexers/Dockerfile .
-          docker push $ECR_REPOSITORY:api-latest
-          docker push $ECR_REPOSITORY:doge_indexer-latest
+          docker build -t $ECR_REPOSITORY/api:latest -f app/server/Dockerfile .
+          docker build -t $ECR_REPOSITORY/indexer:latest -f app/indexers/Dockerfile .
+          docker push $ECR_REPOSITORY/api:latest
+          docker push $ECR_REPOSITORY/indexer:latest
 
       - name: Deploy to existing EC2 instance
         env:
