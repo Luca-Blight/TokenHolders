@@ -13,11 +13,13 @@ jobs:
       ALCHEMY_URL: ${{ secrets.ALCHEMY_URL }}
       PG_USER: ${{ secrets.PG_USER }}
       PG_PASSWORD: ${{ secrets.PG_PASSWORD }}
+      PG_DB: ${{ secrets.PG_DB }}
       PG_HOST: ${{ secrets.PG_HOST }}
       PG_PORT: ${{ secrets.PG_PORT }}
-      PG_NAME: ${{ secrets.PG_NAME }}
-      CONTRACT_ADDRESS: ${{ secrets.CONTACT_ADDRESS}}
-      INDEXING_STRATEGY: ${{ secrets.INDEXING_STRATEGY}}
+      CONTRACT_ADDRESS: ${{ secrets.CONTRACT_ADDRESS }}
+      INDEXING_STRATEGY: ${{ secrets.INDEXING_STRATEGY }}
+      FROM_BLOCK: ${{ secrets.FROM_BLOCK }}
+      TO_BLOCK: ${{ secrets.TO_BLOCK }}
 
     steps:
       - name: Checkout repository
