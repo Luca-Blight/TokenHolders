@@ -42,11 +42,6 @@ jobs:
 
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP "mkdir -p /home/ubuntu/my_project"
           scp -i private_key.pem -o StrictHostKeyChecking=no -r $(pwd)/* ubuntu@$PUBLIC_IP:/home/ubuntu/my_project
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP "sudo apt-get update && sudo apt-get install -y docker.io docker-compose && cd /home/ubuntu/my_project && sudo docker-compose up -d"
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP "sudo apt-get update && sudo apt-get install -y docker.io docker-compose && cd /home/ubuntu/my_project && export ALCHEMY_URL=$ALCHEMY_URL && export INDEXING_STRATEGY=$INDEXING_STRATEGY && export CONTRACT_ADDRESS=$CONTRACT_ADDRESS && export FROM_BLOCK=$FROM_BLOCK && export TO_BLOCK=$TO_BLOCK && export POSTGRES_USER=$PG_USER && export POSTGRES_PASSWORD=$PG_PASSWORD && export POSTGRES_DB=$PG_DB && export POSTGRES_HOST=$PG_HOST && export POSTGRES_PORT=$PG_PORT && sudo docker-compose up -d"
 
           rm -f private_key.pem
-
-      - name: Display instance information
-        run: |
-          echo "The application has been deployed to the following EC2 instance:"
-          echo "Public IP: ${{ env.PUBLIC_IP }}"
