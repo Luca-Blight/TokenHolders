@@ -11,11 +11,11 @@ services:
   doge_indexer:
     image: 954247117315.dkr.ecr.us-east-1.amazonaws.com/indexer:latest
     environment:
-      - ALCHEMY_URL=${ALCHEMY_URL}
-      - INDEXING_STRATEGY=${INDEXING_STRATEGY}
-      - CONTRACT_ADDRESS=${CONTRACT_ADDRESS}
-      - FROM_BLOCK=${FROM_BLOCK}
-      - TO_BLOCK=${TO_BLOCK}
+      - ALCHEMY_URL=$ALCHEMY_URL
+      - INDEXING_STRATEGY=$INDEXING_STRATEGY
+      - CONTRACT_ADDRESS=$CONTRACT_ADDRESS
+      - FROM_BLOCK=$FROM_BLOCK
+      - TO_BLOCK=$TO_BLOCK
     links:
       - postgres
 
@@ -24,14 +24,15 @@ services:
     ports:
       - '5433:5433'
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_HOST=${POSTGRES_HOST}
-      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_USER=$POSTGRES_USER
+      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+      - POSTGRES_DB=$POSTGRES_DB
+      - POSTGRES_HOST=$POSTGRES_HOST
+      - POSTGRES_PORT=$POSTGRES_PORT
     volumes:
       - db:/var/lib/postgresql/data
     command: -p 5433
+
 volumes:
   db:
     driver: local
