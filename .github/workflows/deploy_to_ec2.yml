@@ -16,6 +16,8 @@ jobs:
       PG_HOST: ${{ secrets.PG_HOST }}
       PG_PORT: ${{ secrets.PG_PORT }}
       PG_NAME: ${{ secrets.PG_NAME }}
+      CONTRACT_ADDRESS: ${{ secrets.CONTACT_ADDRESS}}
+      INDEXING_STRATEGY: ${{ secrets.INDEXING_STRATEGY}}
 
     steps:
       - name: Checkout repository

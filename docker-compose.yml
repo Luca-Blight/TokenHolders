@@ -9,17 +9,17 @@ services:
       - '8000:8000'
     links:
       - postgres
-    # environment:
-    #   - PYTHONPATH="/usr/app"
-    # volumes:
-    #   - ./app:/usr/app
 
   doge_indexer:
     build:
       context: .
       dockerfile: app/indexers/Dockerfile
     environment:
-      - ALCHEMY_URL=https://eth-mainnet.g.alchemy.com/v2/hTng6pRagvXdsPNQwfXZLgVr4_Np2p7G
+      - ALCHEMY_URL=${ALCHEMY_URL}
+      - INDEXING_STRATEGY=${INDEXING_STRATEGY}
+      - CONTRACT_ADDRESS=${CONTRACT_ADDRESS}
+      - FROM_BLOCK=${FROM_BLOCK}
+      - TO_BLOCK=${TO_BLOCK}
     links:
       - postgres
 
@@ -28,9 +28,11 @@ services:
     ports:
       - '5433:5433'
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=postgres
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
     volumes:
       - db:/var/lib/postgresql/data
     command: -p 5433
