@@ -42,6 +42,6 @@ jobs:
 
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP "mkdir -p /home/ubuntu/my_project"
           scp -i private_key.pem -o StrictHostKeyChecking=no -r $(pwd)/* ubuntu@$PUBLIC_IP:/home/ubuntu/my_project
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP "sudo apt-get update && sudo apt-get install -y docker.io docker-compose && cd /home/ubuntu/my_project && echo -e \"ALCHEMY_URL=$ALCHEMY_URL\nINDEXING_STRATEGY=$INDEXING_STRATEGY\nCONTRACT_ADDRESS=$CONTRACT_ADDRESS\nFROM_BLOCK=$FROM_BLOCK\nTO_BLOCK=$TO_BLOCK\nPOSTGRES_USER=$PG_USER\nPOSTGRES_PASSWORD=$PG_PASSWORD\nPOSTGRES_DB=$PG_DB\nPOSTGRES_HOST=$PG_HOST\nPOSTGRES_PORT=$PG_PORT\" > .env && sudo docker-compose up -d"
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP "sudo apt-get update && sudo apt-get install -y docker.io docker-compose && sudo apt-get upgrade -y docker.io docker-compose && cd /home/ubuntu/my_project && echo -e \"ALCHEMY_URL=$ALCHEMY_URL\nINDEXING_STRATEGY=$INDEXING_STRATEGY\nCONTRACT_ADDRESS=$CONTRACT_ADDRESS\nFROM_BLOCK=$FROM_BLOCK\nTO_BLOCK=$TO_BLOCK\nPOSTGRES_USER=$PG_USER\nPOSTGRES_PASSWORD=$PG_PASSWORD\nPOSTGRES_DB=$PG_DB\nPOSTGRES_HOST=$PG_HOST\nPOSTGRES_PORT=$PG_PORT\" > .env && sudo docker-compose up -d"
 
           rm -f private_key.pem
