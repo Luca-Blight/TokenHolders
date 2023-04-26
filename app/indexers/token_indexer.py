@@ -53,7 +53,7 @@ def is_hex(s):
 
 
 class TokenIndexer:
-    def __init__(self, contract_address):
+    def __init__(self, contract_address: str):
 
         if not is_hex(contract_address):
             raise ValueError("Invalid contract address")
@@ -62,6 +62,8 @@ class TokenIndexer:
     def get_transfer_events(
         self, from_block: int, to_block: str = None, contract_address: str = None
     ) -> requests.Response:
+        
+        """Get transfer events from Alchemy API, and returns the response"""
 
         if contract_address is None:
             contract_address = self.contract_address
@@ -106,6 +108,8 @@ class TokenIndexer:
         return transfers
 
     def process_transfer_events(self, transfers) -> tuple[pl.DataFrame, int]:
+        
+        """Process transfer events into a dataframe, and return the dataframe and the last block number processed"""
 
         records = []
 
@@ -118,7 +122,6 @@ class TokenIndexer:
                     result: list[dict] = result["result"]["transfers"]
                     for data in result:
                         block_number: int = Web3.to_int(hexstr=str(data["blockNum"]))
-                        # block_date: datetime = get_block_date(block_number)
                         block_timestamp = data["metadata"]["blockTimestamp"]
                         date_format = "%Y-%m-%dT%H:%M:%S.%fZ"
                         block_date = datetime.strptime(block_timestamp, date_format)
@@ -149,6 +152,9 @@ class TokenIndexer:
             return df, last_block
 
     def load_transfer_events(self, balances: pl.DataFrame):
+        
+        """Load transfer events into the database, and update token holder balances. 
+        Sender balances are reduced, receiver balances are increased in one transaction."""
         # order is extremely important here, otherwise total balances will be incorrect, hence the sort and synchronous processing
         balances.sort(["block_number", "transaction_idx"], descending=False)
 

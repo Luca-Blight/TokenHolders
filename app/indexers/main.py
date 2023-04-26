@@ -23,32 +23,6 @@ log.info(f"program running under process: {pid}")
 
 if __name__ == "__main__":
 
-    indexing_strategy = os.environ.get(
-        "INDEXING_STRATEGY",
-        input("Enter the indexing strategy (continuously/on_demand): "),
-    )
-
-    if indexing_strategy == "continuously":
-        contract_address = input("Enter the contract address here: ")
-        token_indexer = TokenIndexer(contract_address=contract_address)
-        token_indexer.index_continuously()
-
-    elif indexing_strategy == "on_demand":
-
-        from_block = int(input("Enter the start block number: "))
-        to_block = int(input("Enter the end block number: "))
-
-        contract_address = input("Enter the contract address here: ")
-
-        token_indexer = TokenIndexer(contract_address=contract_address)
-
-        token_indexer.on_demand(from_block, to_block)
-    else:
-        print("Invalid input. Please enter 'continuously' or 'on_demand'.")
-
-
-if __name__ == "__main__":
-
     indexing_strategy = os.environ.get("INDEXING_STRATEGY")
     contract_address = os.environ.get("CONTRACT_ADDRESS")
 

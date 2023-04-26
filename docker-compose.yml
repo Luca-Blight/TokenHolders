@@ -5,11 +5,16 @@ services:
     image: 954247117315.dkr.ecr.us-east-1.amazonaws.com/api:latest
     ports:
       - '8000:8000'
+    env_file:
+      - .env
+
     links:
       - postgres
 
   indexer:
     image: 954247117315.dkr.ecr.us-east-1.amazonaws.com/indexer:latest
+    env_file:
+      - .env
     environment:
       - ALCHEMY_URL=$ALCHEMY_URL
       - INDEXING_STRATEGY=$INDEXING_STRATEGY
@@ -22,7 +27,9 @@ services:
   postgres:
     image: postgres:14.1-alpine
     ports:
-      - '5433:5433'
+      - '5433:5432'
+    env_file:
+      - .env
     environment:
       - PG_USER=$PG_USER
       - PG_PASSWORD=$PG_PASSWORD

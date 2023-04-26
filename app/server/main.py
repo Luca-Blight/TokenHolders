@@ -87,7 +87,7 @@ async def get_token_holders(
             for holder in results
         ]
 
-    return {"token_holders": token_holders}
+    return ujson.dumps({"token_holders": token_holders})
 
 
 @app.get("/token_holders/{token_holder_address}")

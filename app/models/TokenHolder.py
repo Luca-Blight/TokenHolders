@@ -15,6 +15,7 @@ class TokenHolder(SQLModel, table=True):
     block_number: int
     transaction_hash: str
     transaction_index: int
+    protocol: str
     block_date: datetime = Field(default=datetime.utcnow)
     last_updated: datetime = Field(default=datetime.utcnow)
 
