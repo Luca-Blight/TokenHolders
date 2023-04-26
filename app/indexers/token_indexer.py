@@ -62,7 +62,7 @@ class TokenIndexer:
     def get_transfer_events(
         self, from_block: int, to_block: str = None, contract_address: str = None
     ) -> requests.Response:
-        
+
         """Get transfer events from Alchemy API, and returns the response"""
 
         if contract_address is None:
@@ -108,7 +108,7 @@ class TokenIndexer:
         return transfers
 
     def process_transfer_events(self, transfers) -> tuple[pl.DataFrame, int]:
-        
+
         """Process transfer events into a dataframe, and return the dataframe and the last block number processed"""
 
         records = []
@@ -152,8 +152,8 @@ class TokenIndexer:
             return df, last_block
 
     def load_transfer_events(self, balances: pl.DataFrame):
-        
-        """Load transfer events into the database, and update token holder balances. 
+
+        """Load transfer events into the database, and update token holder balances.
         Sender balances are reduced, receiver balances are increased in one transaction."""
         # order is extremely important here, otherwise total balances will be incorrect, hence the sort and synchronous processing
         balances.sort(["block_number", "transaction_idx"], descending=False)
@@ -362,8 +362,8 @@ class TokenIndexer:
         # The rest of the load_transfer_events method
 
     def index_continuously(self):
-        
-        """Index transfer events continuously(every 15 seconds), 
+
+        """Index transfer events continuously(every 15 seconds),
         starting from the latest block number in the TokenHolder table or from block 0 if the table is empty."""
 
         # Get the latest block number from the TokenHolder table
@@ -391,7 +391,7 @@ class TokenIndexer:
                 time.sleep(15)
 
     def on_demand(self, from_block: int, to_block: int):
-        
+
         """on demand indexing of transfer events, from a given block to a given block"""
 
         try:
