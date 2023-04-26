@@ -65,6 +65,6 @@ if __name__ == "__main__":
         token_indexer.on_demand(from_block, to_block)
 
     else:
-        print(
+        log.info(
             "Invalid input. Please set the INDEXING_STRATEGY environment variable to 'continuously' or 'on_demand'."
         )

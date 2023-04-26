@@ -356,6 +356,9 @@ class TokenIndexer:
         # The rest of the load_transfer_events method
 
     def index_continuously(self):
+        
+        """Index transfer events continuously(every 15 seconds), 
+        starting from the latest block number in the TokenHolder table or from block 0 if the table is empty."""
 
         # Get the latest block number from the TokenHolder table
         with get_session() as session:
@@ -382,6 +385,8 @@ class TokenIndexer:
                 time.sleep(15)
 
     def on_demand(self, from_block: int, to_block: int):
+        
+        """on demand indexing of transfer events, from a given block to a given block"""
 
         try:
             start = time.time()

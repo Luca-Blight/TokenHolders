@@ -1,4 +1,3 @@
-from app.models.TokenHolder import TokenHolder
 from sqlalchemy import create_engine
 from app.config.settings import (
     PG_USER,
@@ -11,7 +10,6 @@ from app.config.settings import (
 )
 from sqlalchemy.ext.asyncio import create_async_engine
 from dotenv import load_dotenv
-import asyncio
 
 load_dotenv()
 
