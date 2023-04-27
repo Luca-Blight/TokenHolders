@@ -9,13 +9,13 @@ class TokenHolder(SQLModel, table=True):
 
     id: int = Field(primary_key=True)
     address: str
-    balance: float = Field(index=True)
+    balance: float = Field(index=True, default=0)
     total_supply_percentage: float
     weekly_balance_change: float = Field(default=0)
     block_number: int
     transaction_hash: str
     transaction_index: int
-    protocol: str
+    token: str
     block_date: datetime = Field(default=datetime.utcnow)
     last_updated: datetime = Field(default=datetime.utcnow)
 

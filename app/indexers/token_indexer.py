@@ -15,7 +15,7 @@ from sqlalchemy.sql import func
 from contextlib import contextmanager
 from web3 import Web3
 from web3.exceptions import BlockNotFound
-
+from typing import List, Dict
 from dotenv import load_dotenv
 
 
@@ -23,7 +23,6 @@ load_dotenv()
 
 ALCHEMY_URL = os.environ.get("ALCHEMY_URL")
 web3 = Web3(Web3.HTTPProvider(ALCHEMY_URL))
-
 
 logging.basicConfig(
     level=logging.INFO,
@@ -33,9 +32,6 @@ logging.basicConfig(
 )
 
 log = logging.getLogger()
-
-pid = os.getpid()
-log.info(f"program running under process: {pid}")
 
 
 @contextmanager
@@ -130,6 +126,7 @@ class TokenIndexer:
                         transaction = web3.eth.get_transaction(transaction_hash)
                         transaction_idx = transaction["transactionIndex"]
                         to_address: str = data["to"]
+                        token: str = data['asset']
                         value: float = round(
                             float(data["value"] if data["value"] else 0), 8
                         )
@@ -143,6 +140,7 @@ class TokenIndexer:
                                 "transaction_hash": transaction_hash,
                                 "block_date": block_date,
                                 "transaction_idx": transaction_idx,
+                                "token": token,
                                 "created_at": datetime.now(),
                             }
                         )
@@ -150,38 +148,191 @@ class TokenIndexer:
             df = pl.DataFrame(records)
             last_block = df["block_number"].max()
             return df, last_block
+        
+    def _update_sender_balance(self, session, record):
+        
+        """Update the sender's balance in the database"""
 
-    def load_transfer_events(self, balances: pl.DataFrame):
+        sender_stmt = (
+            select(TokenHolder)
+            .where(TokenHolder.address == record["from_address"])
+            .order_by(TokenHolder.id.desc())
+            .limit(1)
+        )
+        sender = session.execute(sender_stmt).one_or_none()
 
-        """Load transfer events into the database, and update token holder balances.
-        Sender balances are reduced, receiver balances are increased in one transaction."""
-        # order is extremely important here, otherwise total balances will be incorrect, hence the sort and synchronous processing
-        balances.sort(["block_number", "transaction_idx"], descending=False)
+        if sender is not None:
 
-        records = balances.to_dicts()
-        log.info(f"Processing {len(records)} records")
+            sender = sender[0]
+
+            one_week_ago = record['block_date'] - timedelta(weeks=1)
+            previous_balance = (
+                session.query(func.sum(TokenHolder.balance))
+                .filter(
+                    TokenHolder.address == record["from_address"],
+
+                    TokenHolder.block_date < one_week_ago,
+                )
+                .scalar()
+            )
+
+            # Sender's new balance
+            new_sender_balance = round(sender.balance - value, 2)
+
+            if new_sender_balance < 0 and new_sender_balance >= -0.03:
+                new_sender_balance = 0
+
+            # Create a new record for the sender with the updated balance
+            total_supply = 16969696969
+            sender_total_supply_percentage = round(
+                (new_sender_balance / total_supply) * 100, 2
+            )
+            # already checked for negative value above
+            if previous_balance == 0 or previous_balance is None:
+                weekly_balance_change = 100 if value > 0 else 0
+
+            else:
+                weekly_balance_change = round(
+                    (
+                        (new_sender_balance - previous_balance)
+                        / previous_balance
+                    )
+                    * 100
+                )
+                
+            weekly_balance_change = round(weekly_balance_change, 2)
+
+            if weekly_balance_change < 0 and weekly_balance_change >= -0.03:
+                breakpoint()
+                new_sender_balance = 0
+
+
+            sender = TokenHolder(
+                address=record['from_address'],
+                block_number=record['block_number'],
+                transaction_hash=record['transaction_hash'],
+                transaction_index=record['transaction_idx'],
+                total_supply_percentage=sender_total_supply_percentage,
+                weekly_balance_change=weekly_balance_change,
+                balance=new_sender_balance,
+                block_date=record['block_date'],
+                token=record['token'],
+                last_updated=record['created_at'],
+            )
+            session.add(sender)
+    # ... (existing code for updating sender balance)
+
+    def _update_recipient_balance(self, session, record):
+        recipient = (
+            select(TokenHolder)
+            .where(TokenHolder.address == record['to_address'])
+            .order_by(TokenHolder.id.desc())
+            .limit(1)
+        )
+        recipient = session.execute(recipient).one_or_none()
+
+        # calculate total supply percentage for recipient
+
+        if recipient is None:
+
+            total_supply = 16969696969
+            recipient_total_supply_percentage = round(
+                (record['value'] / total_supply) * 100, 2
+            )  # since this is the first time the recipient is receiving tokens, their total supply percentage is just the value of the transaction
+
+            # Create a new record for the recipient with the updated balance
+            recipient = TokenHolder(
+                address=record['to_address'],
+                transaction_hash=record['transaction_hash'],
+                block_number=record['block_number'],
+                transaction_index=record['transaction_idx'],
+                total_supply_percentage=recipient_total_supply_percentage,
+                balance=record['value'],
+                block_date=record['block_date'],
+                token=record['token'],
+                last_updated=record['created_at'],
+            )
+            session.add(recipient)
+
+        else:
+
+            # Update the existing record for the recipient with the updated balance, total supply percentage, and weekly balance change.
+            recipient = recipient[0]
+            new_recipient_balance = round(recipient.balance + record['value'], 2)
+            if (
+                new_recipient_balance < 0
+                and new_recipient_balance >= -0.03
+            ):
+                new_sender_balance = 0
+
+            total_supply = 16969696969
+            recipient_total_supply_percentage = round(
+                (new_recipient_balance / total_supply) * 100, 2
+            )
+
+            # calculate weekly balance change for recipient
+            one_week_ago = record['block_date'] - timedelta(weeks=1)
+            previous_balance = (
+                session.query(func.sum(TokenHolder.balance))
+                .filter(
+                    TokenHolder.address == record['to_address'],
+                    TokenHolder.block_date < one_week_ago,
+                )
+                .scalar()
+            )
+
+            if previous_balance == 0 or previous_balance is None:
+                weekly_balance_change = 100 if record['value'] > 0 else 0
+
+            else:
+                weekly_balance_change = round(
+                    (
+                        (new_recipient_balance - previous_balance)
+                        / previous_balance
+                    )
+                    * 100,
+                    2,
+                )
+            weekly_balance_change = round(weekly_balance_change, 2)
+
+            if weekly_balance_change < 0 and weekly_balance_change >= -0.03:
+                new_recipient_balance = 0
+
+
+            new_recipient = TokenHolder(
+                address=record['to_address'],
+                transaction_hash=record['transaction_hash'],
+                block_number=record['block_number'],
+                transaction_index=record['transaction_idx'],
+                total_supply_percentage=recipient_total_supply_percentage,
+                weekly_balance_change=weekly_balance_change,
+                balance=new_recipient_balance,
+                block_date=record['block_date'],
+                token=record['token'],
+                last_updated=record['created_at'],
+            )
+            session.add(new_recipient)
+
+    def update_balances(self, records: List[Dict]) -> None:
+        """Update token holder balances in the database."""
         for idx, record in enumerate(records):
-
             log.info(f"Processing record: {idx}")
 
             from_address = record["from_address"]
             to_address = record["to_address"]
             value = record["value"]
-            block_date = record["block_date"]
-            block_number = record["block_number"]
-            transaction_hash = record["transaction_hash"]
-            transaction_idx = record["transaction_idx"]
-
-            created_at = record["created_at"]
 
             # Skip zero value transactions, we only care about transfers that have a value
             if value == 0:
                 continue
 
             with get_session() as session:
-
                 if from_address == "0x0000000000000000000000000000000000000000":
-                    # Process initial owner
+                    for idx, record in enumerate(records):
+
+                        log.info(f"Processing record: {idx}")
+
+            # Skip zero value transactions, we only # Process initial owner
 
                     initial_owner = (
                         session.query(TokenHolder)
@@ -190,176 +341,42 @@ class TokenIndexer:
                     )
 
                     if initial_owner is None:
-                        log.info(f"Initial Supply: {value} DOGE")
-                        total_supply = session.query(
-                            func.sum(TokenHolder.balance)
-                        ).scalar()
-                        total_supply_percentage = 100
+                        log.info(f"Initial Supply: {value} Token: {record['token']}")
+                        # total_supply = session.query(
+                        #     func.sum(TokenHolder.balance)
+                        # ).scalar()
+                        
 
                         initial_owner = TokenHolder(
-                            address=to_address,
-                            transaction_hash=transaction_hash,
-                            block_number=block_number,
-                            transaction_index=transaction_idx,
-                            balance=value,
-                            block_date=block_date,
-                            total_supply_percentage=total_supply_percentage,
-                            last_updated=created_at,
+                            address=record['to_address'],
+                            transaction_hash=record['transaction_hash'],
+                            block_number=record['block_number'],
+                            transaction_index=record['transaction_idx'],
+                            balance=record['value'],
+                            block_date=record['block_date'],
+                            total_supply_percentage=100,
+                            token=record['token'],
+                            last_updated=record['created_at'],
                         )
                         session.add(initial_owner)
 
                         session.commit()
                     else:
-                        continue
-                else:
-                    # Make necessary calculations and commit for the sender
-                    sender_stmt = (
-                        select(TokenHolder)
-                        .where(TokenHolder.address == from_address)
-                        .order_by(TokenHolder.id.desc())
-                        .limit(1)
-                    )
-                    sender = session.execute(sender_stmt).one_or_none()
-
-                    if sender is not None:
-
-                        sender = sender[0]
-
-                        one_week_ago = datetime.utcnow() - timedelta(weeks=1)
-                        previous_balance = (
-                            session.query(func.sum(TokenHolder.balance))
-                            .filter(
-                                TokenHolder.address == from_address,
-                                TokenHolder.block_date < one_week_ago,
-                            )
-                            .scalar()
-                        )
-
-                        # Sender's new balance
-                        new_sender_balance = round(sender.balance - value, 2)
-
-                        if new_sender_balance < 0 and new_sender_balance >= -0.03:
-                            new_sender_balance = 0
-
-                        # Create a new record for the sender with the updated balance
-                        total_supply = 16969696969
-                        sender_total_supply_percentage = round(
-                            (new_sender_balance / total_supply) * 100, 2
-                        )
-                        # already checked for negative value above
-
-                        if previous_balance == 0:
-                            weekly_balance_change = 100 if value > 0 else 0
-
-                        else:
-                            weekly_balance_change = round(
-                                (
-                                    (new_sender_balance - previous_balance)
-                                    / previous_balance
-                                )
-                                * 100
-                            )
-
-                        sender = TokenHolder(
-                            address=from_address,
-                            block_number=block_number,
-                            transaction_hash=transaction_hash,
-                            transaction_index=transaction_idx,
-                            total_supply_percentage=sender_total_supply_percentage,
-                            weekly_balance_change=weekly_balance_change,
-                            balance=new_sender_balance,
-                            block_date=block_date,
-                            last_updated=created_at,
-                        )
-                        session.add(sender)
-
-                        # Make necessary calculations and commit for the recipient
-                        recipient = (
-                            select(TokenHolder)
-                            .where(TokenHolder.address == to_address)
-                            .order_by(TokenHolder.id.desc())
-                            .limit(1)
-                        )
-                        recipient = session.execute(recipient).one_or_none()
-
-                        # calculate total supply percentage for recipient
-
-                        if recipient is None:
-
-                            total_supply = 16969696969
-                            recipient_total_supply_percentage = round(
-                                (value / total_supply) * 100, 2
-                            )  # since this is the first time the recipient is receiving tokens, their total supply percentage is just the value of the transaction
-
-                            # Create a new record for the recipient with the updated balance
-                            recipient = TokenHolder(
-                                address=to_address,
-                                transaction_hash=transaction_hash,
-                                block_number=block_number,
-                                transaction_index=transaction_idx,
-                                total_supply_percentage=recipient_total_supply_percentage,
-                                balance=value,
-                                block_date=block_date,
-                                last_updated=created_at,
-                            )
-                            session.add(recipient)
-
-                        else:
-
-                            # Update the existing record for the recipient with the updated balance, total supply percentage, and weekly balance change.
-                            recipient = recipient[0]
-                            new_recipient_balance = round(recipient.balance + value, 2)
-                            if (
-                                new_recipient_balance < 0
-                                and new_recipient_balance >= -0.03
-                            ):
-                                new_sender_balance = 0
-
-                            total_supply = 16969696969
-                            recipient_total_supply_percentage = round(
-                                (new_recipient_balance / total_supply) * 100, 2
-                            )
-
-                            # calculate weekly balance change for recipient
-                            one_week_ago = datetime.utcnow() - timedelta(weeks=1)
-                            previous_balance = (
-                                session.query(func.sum(TokenHolder.balance))
-                                .filter(
-                                    TokenHolder.address == to_address,
-                                    TokenHolder.block_date < one_week_ago,
-                                )
-                                .scalar()
-                            )
-
-                            if previous_balance == 0:
-                                weekly_balance_change = 100 if value > 0 else 0
-
-                            else:
-                                weekly_balance_change = round(
-                                    (
-                                        (new_recipient_balance - previous_balance)
-                                        / previous_balance
-                                    )
-                                    * 100,
-                                    2,
-                                )
-
-                            new_recipient = TokenHolder(
-                                address=to_address,
-                                transaction_hash=transaction_hash,
-                                block_number=block_number,
-                                transaction_index=transaction_idx,
-                                total_supply_percentage=recipient_total_supply_percentage,
-                                weekly_balance_change=weekly_balance_change,
-                                balance=new_recipient_balance,
-                                block_date=block_date,
-                                last_updated=created_at,
-                            )
-                            session.add(new_recipient)
+                        self._update_sender_balance(session, record)
+                        self._update_recipient_balance(session, record)
 
                         session.commit()
 
-        # The rest of the load_transfer_events method
+    def load_transfer_events(self, balances: pl.DataFrame):
+
+        """Load transfer events into the database, and update token holder balances.
+        Sender balances are reduced, receiver balances are increased in one transaction."""
+        # order is extremely important here, otherwise total balances will be incorrect, hence the sort and synchronous processing
+        balances.sort(["block_number", "transaction_idx"], descending=False)
+        records = balances.to_dicts()
+        self.update_balances(records)
+
+
 
     def index_continuously(self):
 
