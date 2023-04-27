@@ -149,10 +149,14 @@ class TokenIndexer:
             last_block = df["block_number"].max()
             return df, last_block
 
-    def _calculate_total_supply_percentage(self,balance: int, total_supply: int) -> float:
+    def _calculate_total_supply_percentage(
+        self, balance: int, total_supply: int
+    ) -> float:
         round((balance / total_supply) * 100, 2)
 
-    def _calculate_weekly_balance_change(self,new_balance: int, previous_balance: int) -> float:
+    def _calculate_weekly_balance_change(
+        self, new_balance: int, previous_balance: int
+    ) -> float:
         if previous_balance == 0 or previous_balance is None:
             return 100 if new_balance > 0 else 0
         return round(((new_balance - previous_balance) / previous_balance) * 100, 2)
