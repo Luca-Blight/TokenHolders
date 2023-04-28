@@ -35,8 +35,7 @@ logging.basicConfig(
 log = logging.getLogger()
 
 # Set up the logger for sqlalchemy.engine
-logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO) 
-
+logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
 
 @contextmanager
@@ -47,7 +46,8 @@ def get_session():
         yield session
     finally:
         session.close()
-        
+
+
 def is_hex(s):
     return re.match(r"^0x[0-9a-fA-F]{40}$", s) is not None
 
@@ -93,7 +93,6 @@ class TokenIndexer:
                 }
             ],
         }
-        
 
         if to_block:
             hex_to_block = Web3.to_hex(to_block)
@@ -167,11 +166,22 @@ class TokenIndexer:
         return round(((new_balance - previous_balance) / previous_balance) * 100, 2)
 
     def _create_token_holder(
-        self, record, total_supply_percentage, weekly_balance_change, balance
+        self,
+        record,
+        total_supply_percentage,
+        weekly_balance_change,
+        balance,
+        holder: str,
     ) -> TokenHolder:
 
+        """Create a new token holder record"""
+
+        log.info(f"Creating new token holder record: {record['from_address']}")
+
+        holder = record["from_address"] if holder == "sender" else record["to_address"]
+
         return TokenHolder(
-            address=record["to_address"],
+            address=holder,
             transaction_hash=record["transaction_hash"],
             block_number=record["block_number"],
             transaction_index=record["transaction_idx"],
@@ -187,6 +197,7 @@ class TokenIndexer:
 
         """Update the sender's balance in the database"""
 
+        log.info(f"Updating sender balance: {record['from_address']}")
         sender_stmt = (
             select(TokenHolder)
             .where(TokenHolder.address == record["from_address"])
@@ -229,6 +240,7 @@ class TokenIndexer:
                 sender_total_supply_percentage,
                 weekly_balance_change,
                 new_sender_balance,
+                "sender",
             )
             return new_sender
         else:
@@ -239,7 +251,9 @@ class TokenIndexer:
             raise ValueError
 
     def _update_recipient_balance(self, session, record: dict, total_supply: int):
-        
+
+        log.info(f"Updating recipient balance: {record['to_address']}")
+
         recipient = (
             select(TokenHolder)
             .where(TokenHolder.address == record["to_address"])
@@ -258,6 +272,7 @@ class TokenIndexer:
                 record,
                 recipient_total_supply_percentage,
                 weekly_balance_change,
+                "recipient",
             )
 
             return recipient
@@ -292,11 +307,16 @@ class TokenIndexer:
                 recipient_total_supply_percentage,
                 weekly_balance_change,
                 new_recipient_balance,
+                "recipient",
             )
             return new_recipient
 
     def update_balances(self, records: List[Dict], total_supply: int) -> None:
+
         """Update token holder balances in the database."""
+
+        log.info("Updating token holder balances in the database")
+
         for record in records:
             from_address = record["from_address"]
             to_address = record["to_address"]
@@ -308,46 +328,56 @@ class TokenIndexer:
 
             with get_session() as session:
                 if from_address == "0x0000000000000000000000000000000000000000":
-                    for idx, record in enumerate(records):
-
-                        log.info(f"Processing record: {idx}")
-
-                    initial_owner = (
-                        session.query(TokenHolder)
-                        .filter(TokenHolder.address == to_address)
-                        .one_or_none()
-                    )
-                    if initial_owner is None:
-                        log.info(f"Initial Supply: {value} Token: {record['token']}")
-                        try:
+                    try:
+                        initial_owner = (
+                            session.query(TokenHolder)
+                            .filter(TokenHolder.address == to_address)
+                            .one_or_none()
+                        )
+                        if initial_owner is None:
+                            log.info(
+                                f"Initial Supply: {value} Token: {record['token']}"
+                            )
                             initial_owner = self._create_token_holder(
                                 record,
                                 total_supply_percentage=100,
                                 weekly_balance_change=0,
                                 balance=value,
+                                holder="recipient",
                             )
 
                             session.add(initial_owner)
                             session.commit()
-                        except Exception as e:
-                            log.error(f"An error occurred: {e}")
-                            log.error(traceback.format_exc())  # Include stack trace in the log message
-                            log.warning("Rolling back the transaction")
-                            session.rollback()
-                            log.warning("Transaction rolled back")
+                    except Exception as e:
+                        log.error(f"An error occurred: {e}")
+                        log.error(
+                            traceback.format_exc()
+                        )  # Include stack trace in the log message
+                        log.warning("Rolling back the transaction")
+                        session.rollback()
+                        log.warning("Transaction rolled back")
                 else:
                     try:
-                        sender = self._update_sender_balance(session, record, total_supply)
+                        sender = self._update_sender_balance(
+                            session, record, total_supply
+                        )
                         session.add(sender)
-                        recipient = self._update_recipient_balance(session, record, total_supply)
+                        recipient = self._update_recipient_balance(
+                            session, record, total_supply
+                        )
                         session.add(recipient)
+                        log.info(
+                            f"Committing the transaction for both sender: {record['from_address']} and recipient: {record['to_address']}"
+                        )
                         session.commit()
                     except Exception as e:
-                            log.error(f"An error occurred: {e}")
-                            log.error(traceback.format_exc())  # Include stack trace in the log message
-                            log.warning("Rolling back the transaction")
-                            session.rollback()
-                            log.warning("Transaction rolled back")
+                        log.error(f"An error occurred: {e}")
+                        log.error(
+                            traceback.format_exc()
+                        )  # Include stack trace in the log message
+                        log.warning("Rolling back the transaction")
+                        session.rollback()
+                        log.warning("Transaction rolled back")
 
     def load_transfer_events(self, balances: pl.DataFrame):
 
