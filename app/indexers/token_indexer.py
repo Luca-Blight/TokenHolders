@@ -5,6 +5,7 @@ import requests
 import json
 import time
 import re
+import traceback
 
 from app.models.TokenHolder import TokenHolder
 from app.database.main import engine
@@ -33,6 +34,10 @@ logging.basicConfig(
 
 log = logging.getLogger()
 
+# Set up the logger for sqlalchemy.engine
+logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO) 
+
+
 
 @contextmanager
 def get_session():
@@ -42,8 +47,7 @@ def get_session():
         yield session
     finally:
         session.close()
-
-
+        
 def is_hex(s):
     return re.match(r"^0x[0-9a-fA-F]{40}$", s) is not None
 
@@ -89,6 +93,7 @@ class TokenIndexer:
                 }
             ],
         }
+        
 
         if to_block:
             hex_to_block = Web3.to_hex(to_block)
@@ -225,7 +230,7 @@ class TokenIndexer:
                 weekly_balance_change,
                 new_sender_balance,
             )
-            session.add(new_sender)
+            return new_sender
         else:
 
             log.info(
@@ -234,6 +239,7 @@ class TokenIndexer:
             raise ValueError
 
     def _update_recipient_balance(self, session, record: dict, total_supply: int):
+        
         recipient = (
             select(TokenHolder)
             .where(TokenHolder.address == record["to_address"])
@@ -254,7 +260,7 @@ class TokenIndexer:
                 weekly_balance_change,
             )
 
-            session.add(recipient)
+            return recipient
 
         else:
 
@@ -287,12 +293,11 @@ class TokenIndexer:
                 weekly_balance_change,
                 new_recipient_balance,
             )
-            session.add(new_recipient)
+            return new_recipient
 
     def update_balances(self, records: List[Dict], total_supply: int) -> None:
         """Update token holder balances in the database."""
-        for idx, record in enumerate(records):
-
+        for record in records:
             from_address = record["from_address"]
             to_address = record["to_address"]
             value = record["value"]
@@ -312,25 +317,37 @@ class TokenIndexer:
                         .filter(TokenHolder.address == to_address)
                         .one_or_none()
                     )
-
                     if initial_owner is None:
                         log.info(f"Initial Supply: {value} Token: {record['token']}")
+                        try:
+                            initial_owner = self._create_token_holder(
+                                record,
+                                total_supply_percentage=100,
+                                weekly_balance_change=0,
+                                balance=value,
+                            )
 
-                        initial_owner = self._create_token_holder(
-                            record,
-                            total_supply_percentage=100,
-                            weekly_balance_change=0,
-                            balance=value,
-                        )
-
-                        session.add(initial_owner)
-
-                        session.commit()
+                            session.add(initial_owner)
+                            session.commit()
+                        except Exception as e:
+                            log.error(f"An error occurred: {e}")
+                            log.error(traceback.format_exc())  # Include stack trace in the log message
+                            log.warning("Rolling back the transaction")
+                            session.rollback()
+                            log.warning("Transaction rolled back")
                     else:
-                        self._update_sender_balance(session, record, total_supply)
-                        self._update_recipient_balance(session, record, total_supply)
-
-                        session.commit()
+                        try:
+                            sender = self._update_sender_balance(session, record, total_supply)
+                            session.add(sender)
+                            recipient = self._update_recipient_balance(session, record, total_supply)
+                            session.add(recipient)
+                            session.commit()
+                        except Exception as e:
+                                log.error(f"An error occurred: {e}")
+                                log.error(traceback.format_exc())  # Include stack trace in the log message
+                                log.warning("Rolling back the transaction")
+                                session.rollback()
+                                log.warning("Transaction rolled back")
 
     def load_transfer_events(self, balances: pl.DataFrame):
 
