@@ -335,19 +335,19 @@ class TokenIndexer:
                             log.warning("Rolling back the transaction")
                             session.rollback()
                             log.warning("Transaction rolled back")
-                    else:
-                        try:
-                            sender = self._update_sender_balance(session, record, total_supply)
-                            session.add(sender)
-                            recipient = self._update_recipient_balance(session, record, total_supply)
-                            session.add(recipient)
-                            session.commit()
-                        except Exception as e:
-                                log.error(f"An error occurred: {e}")
-                                log.error(traceback.format_exc())  # Include stack trace in the log message
-                                log.warning("Rolling back the transaction")
-                                session.rollback()
-                                log.warning("Transaction rolled back")
+                else:
+                    try:
+                        sender = self._update_sender_balance(session, record, total_supply)
+                        session.add(sender)
+                        recipient = self._update_recipient_balance(session, record, total_supply)
+                        session.add(recipient)
+                        session.commit()
+                    except Exception as e:
+                            log.error(f"An error occurred: {e}")
+                            log.error(traceback.format_exc())  # Include stack trace in the log message
+                            log.warning("Rolling back the transaction")
+                            session.rollback()
+                            log.warning("Transaction rolled back")
 
     def load_transfer_events(self, balances: pl.DataFrame):
 
