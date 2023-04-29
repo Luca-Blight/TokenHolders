@@ -156,7 +156,8 @@ class TokenIndexer:
     def _calculate_total_supply_percentage(
         self, balance: int, total_supply: int
     ) -> float:
-        round((balance / total_supply) * 100, 2)
+
+        return round((balance / total_supply) * 100, 2)
 
     def _calculate_weekly_balance_change(
         self, new_balance: int, previous_balance: int
@@ -270,9 +271,10 @@ class TokenIndexer:
 
             recipient = self._create_token_holder(
                 record,
-                recipient_total_supply_percentage,
-                weekly_balance_change,
-                "recipient",
+                balance=record["value"],
+                total_supply_percentage=recipient_total_supply_percentage,
+                holder="recipient",
+                weekly_balance_change=100,
             )
 
             return recipient
@@ -316,7 +318,6 @@ class TokenIndexer:
         """Update token holder balances in the database."""
 
         log.info("Updating token holder balances in the database")
-
         for record in records:
             from_address = record["from_address"]
             to_address = record["to_address"]
@@ -358,9 +359,11 @@ class TokenIndexer:
                         log.warning("Transaction rolled back")
                 else:
                     try:
+
                         sender = self._update_sender_balance(
                             session, record, total_supply
                         )
+
                         session.add(sender)
                         recipient = self._update_recipient_balance(
                             session, record, total_supply
@@ -369,6 +372,7 @@ class TokenIndexer:
                         log.info(
                             f"Committing the transaction for both sender: {record['from_address']} and recipient: {record['to_address']}"
                         )
+
                         session.commit()
                     except Exception as e:
                         log.error(f"An error occurred: {e}")
@@ -387,11 +391,13 @@ class TokenIndexer:
         balances.sort(["block_number", "transaction_idx"], descending=False)
         records = balances.to_dicts()
         with get_session() as session:
-            total_supply = (
+            initial_owner = (
                 session.query(TokenHolder)
                 .filter(TokenHolder.total_supply_percentage == 100)
                 .one_or_none()
             )
+
+        total_supply = initial_owner.balance
 
         self.update_balances(records, total_supply)
 
