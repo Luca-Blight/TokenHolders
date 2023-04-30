@@ -62,7 +62,7 @@ jobs:
         env:
           PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
         run: |
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP 'mkdir -p /home/ubuntu/.docker && echo \'{ "credsStore": "ecr-login" }\' > /home/ubuntu/.docker/config.json && sudo chown -R ubuntu:ubuntu /home/ubuntu/.docker'
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP 'mkdir -p /home/ubuntu/.docker && echo "{ \"credsStore\": \"ecr-login\" }" > /home/ubuntu/.docker/config.json && sudo chown -R ubuntu:ubuntu /home/ubuntu/.docker'
 
       - name: Transfer files to EC2
         env:
