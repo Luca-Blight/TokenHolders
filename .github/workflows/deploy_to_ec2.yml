@@ -45,23 +45,48 @@ jobs:
           docker push $ECR_REPOSITORY/api:latest
           docker push $ECR_REPOSITORY/indexer:latest
 
-      - name: Deploy to existing EC2 instance
+      - name: Create private_key.pem
         env:
           PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-          PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
         run: |
-          echo "$PRIVATE_KEY" | cat > private_key.pem
+          echo "$PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
 
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP <<'EOF'
-            sudo apt-get update
-            sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-            sudo apt-get install -y amazon-ecr-credential-helper
-            mkdir -p /home/ubuntu/.docker
-            echo '{ "credsStore": "ecr-login" }' > /home/ubuntu/.docker/config.json
-            sudo chown -R ubuntu:ubuntu /home/ubuntu/.docker EOF
+      - name: Update and install packages on EC2
+        env:
+          PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
+        run: |
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP 'sudo apt-get update && sudo apt-get install -y docker-ce docker-ce-cli containerd.io amazon-ecr-credential-helper'
 
+      - name: Configure ECR credential helper
+        env:
+          PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
+        run: |
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP 'mkdir -p /home/ubuntu/.docker && echo \'{ "credsStore": "ecr-login" }\' > /home/ubuntu/.docker/config.json && sudo chown -R ubuntu:ubuntu /home/ubuntu/.docker'
+
+      - name: Transfer files to EC2
+        env:
+          PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
+        run: |
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP "mkdir -p /home/ubuntu/my_project"
           scp -i private_key.pem -o StrictHostKeyChecking=no -r $(pwd)/* ubuntu@$PUBLIC_IP:/home/ubuntu/my_project
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP <<'EOF'
-            export ALCHEMY_URL
+
+      - name: Deploy on EC2
+        env:
+          PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
+        run: |
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP 'export ALCHEMY_URL=$ALCHEMY_URL && \
+            export PG_USER=$PG_USER && \
+            export PG_PASSWORD=$PG_PASSWORD && \
+            export PG_DB=$PG_DB && \
+            export PG_HOST=$PG_HOST && \
+            export PG_PORT=$PG_PORT && \
+            export CONTRACT_ADDRESS=$CONTRACT_ADDRESS && \
+            export INDEXING_STRATEGY=$INDEXING_STRATEGY && \
+            export FROM_BLOCK=$FROM_BLOCK && \
+            export TO_BLOCK=$TO_BLOCK && \
+            export ECR_REPOSITORY=$ECR_REPOSITORY && \
+            export AWS_REGION=$AWS_REGION && \
+            cd /home/ubuntu/my_project && \
+            # Your deployment commands here, e.g.
+            docker-compose up -d'
