@@ -72,6 +72,8 @@ jobs:
           scp -i private_key.pem -o StrictHostKeyChecking=no -r $(pwd)/* ubuntu@$PUBLIC_IP:/home/ubuntu/my_project
 
       - name: Deploy the stack
+        env:
+          PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
         run: |
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP 'cd my_project && docker-compose pull && docker-compose up -d --force-recreate'
 
