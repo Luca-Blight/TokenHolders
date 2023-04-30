@@ -29,6 +29,9 @@ if __name__ == "__main__":
     indexing_strategy = 'continuously' if indexing_strategy == None else indexing_strategy
     contract_address = '0xBAac2B4491727D78D2b78815144570b9f2Fe8899' if contract_address == None else contract_address
     
+    log.info(f"indexing strategy: {indexing_strategy}")
+    log.info(f"contract address: {contract_address}")
+    
     if indexing_strategy == "continuously":
         token_indexer = TokenIndexer(contract_address=contract_address)
         token_indexer.index_continuously()
