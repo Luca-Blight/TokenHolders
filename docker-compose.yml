@@ -16,7 +16,7 @@ services:
       - .env
     environment:
       - ALCHEMY_URL=$ALCHEMY_URL
-      - INDEXING_STRATEGY='continuously'
+      - INDEXING_STRATEGY=continuously
       - CONTRACT_ADDRESS=$CONTRACT_ADDRESS
       - FROM_BLOCK=$FROM_BLOCK
       - TO_BLOCK=$TO_BLOCK
