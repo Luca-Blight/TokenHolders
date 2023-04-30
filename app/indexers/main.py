@@ -26,8 +26,8 @@ if __name__ == "__main__":
     indexing_strategy = os.environ.get("INDEXING_STRATEGY")
     contract_address = os.environ.get("CONTRACT_ADDRESS")
     
-    indexing_strategy = 'continuously' if indexing_strategy == None else indexing_strategy
-    contract_address = '0xBAac2B4491727D78D2b78815144570b9f2Fe8899' if contract_address == None else contract_address
+    indexing_strategy = 'continuously' if not indexing_strategy else indexing_strategy
+    contract_address = '0xBAac2B4491727D78D2b78815144570b9f2Fe8899' if not contract_address else contract_address
     
     log.info(f"indexing strategy: {indexing_strategy}")
     log.info(f"contract address: {contract_address}")
