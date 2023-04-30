@@ -50,7 +50,7 @@ jobs:
           PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
         run: |
-          echo "$PRIVATE_KEY" > private_key.pem
+          echo "$PRIVATE_KEY" | cat > private_key.pem
           chmod 600 private_key.pem
 
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP <<'EOF'
@@ -64,6 +64,4 @@ jobs:
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP "mkdir -p /home/ubuntu/my_project"
           scp -i private_key.pem -o StrictHostKeyChecking=no -r $(pwd)/* ubuntu@$PUBLIC_IP:/home/ubuntu/my_project
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP <<'EOF'
-            export ALCHEMY_URL=$ALCHEMY_URL INDEXING_STRATEGY=$INDEXING_STRATEGY CONTRACT_ADDRESS=$CONTRACT_ADDRESS FROM_BLOCK=$FROM_BLOCK TO_BLOCK=$TO_BLOCK PG_USER=$PG_USER PG_PASSWORD=$PG_PASSWORD PG_DB=$PG_DB PG_HOST=$PG_HOST PG_PORT=$PG_PORT ECR_REPOSITORY=$ECR_REPOSITORY
-            cd /home/ubuntu/my_project
-            echo -e "
+            export ALCHEMY_URL
