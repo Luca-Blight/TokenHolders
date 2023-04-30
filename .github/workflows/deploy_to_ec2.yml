@@ -71,6 +71,10 @@ jobs:
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP "mkdir -p /home/ubuntu/my_project"
           scp -i private_key.pem -o StrictHostKeyChecking=no -r $(pwd)/* ubuntu@$PUBLIC_IP:/home/ubuntu/my_project
 
+      - name: Deploy the stack
+        run: |
+          echo 'Continue with the new image? [yN]' | ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP 'cd my_project && docker-compose pull && docker-compose up -d --force-recreate'
+
       - name: Deploy on EC2
         env:
           PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
@@ -89,4 +93,4 @@ jobs:
             export AWS_REGION=$AWS_REGION && \
             cd /home/ubuntu/my_project && \
             # Your deployment commands here, e.g.
-            docker-compose up -d'
+            # docker-compose up'
