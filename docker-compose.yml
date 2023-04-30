@@ -8,37 +8,36 @@ services:
     env_file:
       - .env
 
-    links:
+    depends_on:
       - postgres
-
   indexer:
     image: 954247117315.dkr.ecr.us-east-1.amazonaws.com/indexer:latest
     env_file:
       - .env
     environment:
       - ALCHEMY_URL=$ALCHEMY_URL
-      - INDEXING_STRATEGY=$INDEXING_STRATEGY
+      - INDEXING_STRATEGY='continuously'
       - CONTRACT_ADDRESS=$CONTRACT_ADDRESS
       - FROM_BLOCK=$FROM_BLOCK
       - TO_BLOCK=$TO_BLOCK
-    links:
+    depends_on:
       - postgres
 
   postgres:
     image: postgres:14.1-alpine
     ports:
-      - '5433:5432'
+      - '5432:5432'
     env_file:
       - .env
     environment:
-      - PG_USER=$PG_USER
-      - PG_PASSWORD=$PG_PASSWORD
-      - PG_DB=$PG_DB
-      - PG_HOST=$PG_HOST
-      - PG_PORT=$PG_PORT
+      - POSTGRES_USER=$PG_USER
+      - POSTGRES_PASSWORD=$PG_PASSWORD
+      - POSTGRES__DB=$PG_DB
+      - POSTGRES_HOST=$PG_HOST
+      - POSTGRES_PORT=$PG_PORT
     volumes:
       - db:/var/lib/postgresql/data
-    command: -p 5433
+    command: -p 5432
 
 volumes:
   db:
