@@ -75,7 +75,7 @@ jobs:
         env:
           PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
         run: |
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP 'cd my_project && docker-compose pull && docker-compose up -d --force-recreate'
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP 'cd my_project && docker-compose pull && docker-compose up -d --force-recreate --remove-orphans'
 
       - name: Deploy on EC2
         env:
