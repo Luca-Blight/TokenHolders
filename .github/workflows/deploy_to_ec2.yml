@@ -66,4 +66,4 @@ jobs:
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP "\
             export ALCHEMY_URL=$ALCHEMY_URL INDEXING_STRATEGY=$INDEXING_STRATEGY CONTRACT_ADDRESS=$CONTRACT_ADDRESS FROM_BLOCK=$FROM_BLOCK TO_BLOCK=$TO_BLOCK PG_USER=$PG_USER PG_PASSWORD=$PG_PASSWORD PG_DB=$PG_DB PG_HOST=$PG_HOST PG_PORT=$PG_PORT ECR_REPOSITORY=$ECR_REPOSITORY && \
             cd /home/ubuntu/my_project && \
-            echo -e \"ALCHEMY_URL=\$ALCHEMY_URL\nINDEX
+            echo -e \"ALCHEMY_URL=\$ALCHEMY
