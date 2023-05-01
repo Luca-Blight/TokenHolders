@@ -81,7 +81,7 @@ jobs:
         env:
           PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
         run: |
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP 'echo "
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP "echo \"
           ALCHEMY_URL=$ALCHEMY_URL
           PG_USER=$PG_USER
           PG_PASSWORD=$PG_PASSWORD
@@ -94,6 +94,6 @@ jobs:
           TO_BLOCK=$TO_BLOCK
           ECR_REPOSITORY=$ECR_REPOSITORY
           AWS_REGION=$AWS_REGION
-          " > /home/ubuntu/my_project/.env && \
+          \" > /home/ubuntu/my_project/.env && \
           cd /home/ubuntu/my_project && \
-          docker-compose up'
+          docker-compose up"
