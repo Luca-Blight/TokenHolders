@@ -40,7 +40,6 @@ async def get_root():
 @app.get("/token_holders")
 @cached(ttl=3600)
 async def get_token_holders(
-    top_token_holders: Optional[int] = None,
     limit: Optional[int] = 100,
     order_by: Optional[str] = "desc",
 ):
@@ -59,9 +58,6 @@ async def get_token_holders(
             (TokenHolder.address == subquery.c.address)
             & (TokenHolder.block_date == subquery.c.max_timestamp),
         )
-
-        if top_token_holders:
-            limit = top_token_holders
 
         if order_by.lower() == "desc":
             query = query.order_by(TokenHolder.balance.desc())
