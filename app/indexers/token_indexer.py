@@ -57,7 +57,7 @@ def is_hex(s):
 
 
 class TokenIndexer:
-    def __init__(self, contract_address: str, total_supply: int = 0):
+    def __init__(self, contract_address: str, total_supply: int):
 
         if not is_hex(contract_address):
             raise ValueError("Invalid contract address")
@@ -161,7 +161,7 @@ class TokenIndexer:
     def _calculate_total_supply_percentage(
         self, balance: int, total_supply: int
     ) -> float:
-
+          
         return round((balance / total_supply) * 100, 2)
 
     def _calculate_weekly_balance_change(

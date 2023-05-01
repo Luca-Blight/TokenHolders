@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
     indexing_strategy = os.environ.get("INDEXING_STRATEGY")
     contract_address = os.environ.get("CONTRACT_ADDRESS")
-    total_supply = os.environ.get("TOTAL_SUPPLY")
+    total_supply = int(os.environ.get("TOTAL_SUPPLY"))
 
     indexing_strategy = "continuously" if not indexing_strategy else indexing_strategy
     contract_address = (
