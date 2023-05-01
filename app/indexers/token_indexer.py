@@ -42,7 +42,6 @@ log.info(f"pg url: {PG_URL}")
 log.info(f"engine: {engine}")
 
 
-
 @contextmanager
 def get_session():
     session = sessionmaker(bind=engine, expire_on_commit=False)()
@@ -58,11 +57,12 @@ def is_hex(s):
 
 
 class TokenIndexer:
-    def __init__(self, contract_address: str):
+    def __init__(self, contract_address: str, total_supply: int = 0):
 
         if not is_hex(contract_address):
             raise ValueError("Invalid contract address")
         self.contract_address = contract_address
+        self.total_supply = total_supply
 
     def get_transfer_events(
         self, from_block: int, to_block: str = None, contract_address: str = None
@@ -395,14 +395,14 @@ class TokenIndexer:
 
         balances.sort(["block_number", "transaction_idx"], descending=False)
         records = balances.to_dicts()
-        with get_session() as session:
-            initial_owner = (
-                session.query(TokenHolder)
-                .filter(TokenHolder.total_supply_percentage == 100)
-                .one_or_none()
-            )
+        # with get_session() as session:
+        #     initial_owner = (
+        #         session.query(TokenHolder)
+        #         .filter(TokenHolder.total_supply_percentage == 100)
+        #         .one_or_none()
+        #     )
 
-        total_supply = initial_owner.balance
+        total_supply = self.total_supply
 
         self.update_balances(records, total_supply)
 

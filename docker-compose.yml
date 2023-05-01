@@ -20,6 +20,8 @@ services:
     image: 954247117315.dkr.ecr.us-east-1.amazonaws.com/indexer:latest
     env_file:
       - .env
+    environment:
+      - TOTAL_SUPPLY=16969696969
     depends_on:
       - postgres
 
