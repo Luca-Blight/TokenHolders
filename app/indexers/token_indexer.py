@@ -8,7 +8,7 @@ import re
 import traceback
 
 from app.models.TokenHolder import TokenHolder
-from app.database.main import engine
+from app.database.main import engine, PG_URL
 from datetime import datetime, timedelta
 from sqlmodel import select
 from sqlalchemy.orm import sessionmaker
@@ -25,6 +25,7 @@ load_dotenv()
 ALCHEMY_URL = os.environ.get("ALCHEMY_URL")
 web3 = Web3(Web3.HTTPProvider(ALCHEMY_URL))
 
+
 logging.basicConfig(
     level=logging.INFO,
     format="{asctime} {levelname} {message}",
@@ -36,6 +37,9 @@ log = logging.getLogger()
 
 # Set up the logger for sqlalchemy.engine
 logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
+
+log.info(f"pg url: {PG_URL}")
+log.info(f"engine: {engine}")
 
 
 @contextmanager
@@ -53,11 +57,12 @@ def is_hex(s):
 
 
 class TokenIndexer:
-    def __init__(self, contract_address: str):
+    def __init__(self, contract_address: str, total_supply: int):
 
         if not is_hex(contract_address):
             raise ValueError("Invalid contract address")
         self.contract_address = contract_address
+        self.total_supply = total_supply
 
     def get_transfer_events(
         self, from_block: int, to_block: str = None, contract_address: str = None
@@ -156,7 +161,7 @@ class TokenIndexer:
     def _calculate_total_supply_percentage(
         self, balance: int, total_supply: int
     ) -> float:
-
+          
         return round((balance / total_supply) * 100, 2)
 
     def _calculate_weekly_balance_change(
@@ -390,14 +395,14 @@ class TokenIndexer:
 
         balances.sort(["block_number", "transaction_idx"], descending=False)
         records = balances.to_dicts()
-        with get_session() as session:
-            initial_owner = (
-                session.query(TokenHolder)
-                .filter(TokenHolder.total_supply_percentage == 100)
-                .one_or_none()
-            )
+        # with get_session() as session:
+        #     initial_owner = (
+        #         session.query(TokenHolder)
+        #         .filter(TokenHolder.total_supply_percentage == 100)
+        #         .one_or_none()
+        #     )
 
-        total_supply = initial_owner.balance
+        total_supply = self.total_supply
 
         self.update_balances(records, total_supply)
 
