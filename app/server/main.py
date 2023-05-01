@@ -6,7 +6,7 @@ from sqlalchemy import func
 from typing import Optional
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import sessionmaker
-from app.models import TokenHolder
+from app.models.TokenHolder import TokenHolder
 from app.database.main import async_engine
 from aiocache import cached, SimpleMemoryCache
 
@@ -78,7 +78,7 @@ async def get_token_holders(
                 "balance": holder[0].balance,
                 "total_supply_percentage": holder[0].total_supply_percentage,
                 "weekly_balance_change": holder[0].weekly_balance_change,
-                "last_updated": holder[0].block_date,
+                "last_updated": holder[0].block_date.isoformat(),
             }
             for holder in results
         ]
@@ -168,4 +168,11 @@ async def get_token_holders(
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    
+    server = uvicorn.Server(uvicorn.Config("main:app", host="127.0.0.1", port=8000, reload=True))
+
+    try:
+        server.run()
+    except KeyboardInterrupt:
+        server.shutdown()
+        print("Shutting down...")
