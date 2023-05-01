@@ -88,6 +88,7 @@ jobs:
           PG_DB=${{ secrets.PG_DB }}
           PG_HOST=${{ secrets.PG_HOST }}
           PG_PORT=${{ secrets.PG_PORT }}
+          PG_NAME=${{ secrets.PG_NAME }}
           CONTRACT_ADDRESS=${{ secrets.CONTRACT_ADDRESS }}
           INDEXING_STRATEGY=${{ secrets.INDEXING_STRATEGY }}
           FROM_BLOCK=${{ secrets.FROM_BLOCK }}
