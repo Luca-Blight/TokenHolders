@@ -7,6 +7,12 @@ services:
       - '8000:8000'
     env_file:
       - .env
+    environment:
+      - PG_USER=$PG_USER
+      - PG_PASSWORD=$PG_PASSWORD
+      - PG_DB=$PG_DB
+      - PG_HOST=$PG_HOST
+      - PG_PORT=$PG_PORT
 
     depends_on:
       - postgres
@@ -20,6 +26,12 @@ services:
       - CONTRACT_ADDRESS=$CONTRACT_ADDRESS
       - FROM_BLOCK=$FROM_BLOCK
       - TO_BLOCK=$TO_BLOCK
+      - PG_USER=$PG_USER
+      - PG_PASSWORD=$PG_PASSWORD
+      - PG_DB=$PG_DB
+      - PG_HOST=$PG_HOST
+      - PG_PORT=$PG_PORT
+
     depends_on:
       - postgres
 
