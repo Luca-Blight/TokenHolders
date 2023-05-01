@@ -8,7 +8,7 @@ import re
 import traceback
 
 from app.models.TokenHolder import TokenHolder
-from app.database.main import engine
+from app.database.main import engine, PG_URL
 from datetime import datetime, timedelta
 from sqlmodel import select
 from sqlalchemy.orm import sessionmaker
@@ -25,6 +25,7 @@ load_dotenv()
 ALCHEMY_URL = os.environ.get("ALCHEMY_URL")
 web3 = Web3(Web3.HTTPProvider(ALCHEMY_URL))
 
+
 logging.basicConfig(
     level=logging.INFO,
     format="{asctime} {levelname} {message}",
@@ -36,6 +37,10 @@ log = logging.getLogger()
 
 # Set up the logger for sqlalchemy.engine
 logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
+
+log.info(f"pg url: {PG_URL}")
+log.info(f"engine: {engine}")
+
 
 
 @contextmanager
