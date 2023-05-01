@@ -3,7 +3,7 @@ version: '3.9'
 services:
   printenv:
     image: alpine
-    command: /bin/sh -c "echo 'PG_HOST=$$PG_HOST'; echo 'PG_PORT=$$PG_PORT'; echo 'PG_USER=$$PG_USER'; echo 'PG_PASSWORD=$$PG_PASSWORD'; echo 'PG_DB=$$PG_DB'"
+    command: /bin/sh -c "echo 'PG_HOST=${PG_HOST}'; echo 'PG_PORT=${PG_PORT}'; echo 'PG_USER=${PG_USER}'; echo 'PG_PASSWORD=${PG_PASSWORD}'; echo 'PG_DB=${PG_DB}'"
     env_file:
       - .env
 

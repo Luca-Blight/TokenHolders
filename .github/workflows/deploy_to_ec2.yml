@@ -81,17 +81,19 @@ jobs:
         env:
           PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
         run: |
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP 'export ALCHEMY_URL=$ALCHEMY_URL && \
-          export PG_USER=$PG_USER && \
-          export PG_PASSWORD=$PG_PASSWORD && \
-          export PG_DB=$PG_DB && \
-          export PG_HOST=$PG_HOST && \
-          export PG_PORT=$PG_PORT && \
-          export CONTRACT_ADDRESS=$CONTRACT_ADDRESS && \
-          export INDEXING_STRATEGY=$INDEXING_STRATEGY && \
-          export FROM_BLOCK=$FROM_BLOCK && \
-          export TO_BLOCK=$TO_BLOCK && \
-          export ECR_REPOSITORY=$ECR_REPOSITORY && \
-          export AWS_REGION=$AWS_REGION && \
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$PUBLIC_IP 'echo "
+          ALCHEMY_URL=$ALCHEMY_URL
+          PG_USER=$PG_USER
+          PG_PASSWORD=$PG_PASSWORD
+          PG_DB=$PG_DB
+          PG_HOST=$PG_HOST
+          PG_PORT=$PG_PORT
+          CONTRACT_ADDRESS=$CONTRACT_ADDRESS
+          INDEXING_STRATEGY=$INDEXING_STRATEGY
+          FROM_BLOCK=$FROM_BLOCK
+          TO_BLOCK=$TO_BLOCK
+          ECR_REPOSITORY=$ECR_REPOSITORY
+          AWS_REGION=$AWS_REGION
+          " > /home/ubuntu/my_project/.env && \
           cd /home/ubuntu/my_project && \
           docker-compose up'
