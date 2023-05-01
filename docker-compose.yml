@@ -1,6 +1,16 @@
 version: '3.9'
 
 services:
+  printenv:
+    image: alpine
+    command: /bin/sh -c "echo 'PG_HOST=$$PG_HOST'; echo 'PG_PORT=$$PG_PORT'; echo 'PG_USER=$$PG_USER'; echo 'PG_PASSWORD=$$PG_PASSWORD'; echo 'PG_DB=$$PG_DB'"
+    environment:
+      - PG_HOST=${PG_HOST}
+      - PG_PORT=${PG_PORT}
+      - PG_USER=${PG_USER}
+      - PG_PASSWORD=${PG_PASSWORD}
+      - PG_DB=${PG_DB}
+
   api:
     image: 954247117315.dkr.ecr.us-east-1.amazonaws.com/api:latest
     ports:
@@ -12,7 +22,7 @@ services:
       - PG_PASSWORD=$PG_PASSWORD
       - PG_DB=$PG_DB
       - PG_HOST=$PG_HOST
-      - PG_PORT=5432
+      - PG_PORT=$PG_PORT
 
     depends_on:
       - postgres
@@ -30,7 +40,7 @@ services:
       - PG_PASSWORD=$PG_PASSWORD
       - PG_DB=$PG_DB
       - PG_HOST=$PG_HOST
-      - PG_PORT=5432
+      - PG_PORT=$PG_PORT
 
     depends_on:
       - postgres
