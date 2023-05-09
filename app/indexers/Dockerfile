@@ -32,7 +32,6 @@ RUN pip3 install --upgrade pip && \
 COPY app/. .
 
 ENV PYTHONPATH="/usr/"
-ENV ALCHEMY_URL="https://eth-mainnet.g.alchemy.com/v2/hTng6pRagvXdsPNQwfXZLgVr4_Np2p7G"
 
 CMD ["python", "indexers/main.py"]
 
